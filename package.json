@@ -6,6 +6,7 @@
 	"dependencies": {
 		"@chat-adapter/slack": "^4.23.0",
 		"@chat-adapter/state-memory": "^4.23.0",
+		"@chat-adapter/state-redis": "^4.23.0",
 		"@mariozechner/pi-coding-agent": "^0.64.0",
 		"chat": "^4.23.0"
 	}

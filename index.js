@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { Chat } from "chat";
-import { createMemoryState } from "@chat-adapter/state-memory";
+import { createRedisState } from "@chat-adapter/state-redis";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import {
   createAgentSession,
@@ -28,21 +28,34 @@ console.log("[pi] Model:", model.id);
 // 2. Create the bot
 //    Reads SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET from env automatically.
 // ---------------------------------------------------------------------------
+
+// Redis state — shared between Chat SDK and pi session persistence
+const state = createRedisState();
+await state.connect();
+
+const SESSION_KEY_PREFIX = "pi:session:";
+
+async function getSessionPath(threadId) {
+  return state.get(`${SESSION_KEY_PREFIX}${threadId}`);
+}
+
+async function setSessionPath(threadId, sessionFile) {
+  await state.set(`${SESSION_KEY_PREFIX}${threadId}`, sessionFile);
+}
+
 const bot = new Chat({
   userName: "pi",
-  state: createMemoryState(),
+  state,
+  concurrency: "queue",
   adapters: {
     slack: createSlackAdapter(),
   },
 });
 
-// Map Slack thread ID -> pi session file path (in-process memory)
-const threadSessions = new Map();
+async function askPi(thread, message) {
+  console.log(`[slack] message from ${message.author.fullName}: ${message.text}`);
 
-bot.onNewMention(async (thread, message) => {
-  console.log(`[slack] mention from ${message.author.fullName}: ${message.text}`);
-
-  const existingSessionPath = threadSessions.get(thread.id);
+  const existingSessionPath = await getSessionPath(thread.id);
 
   let prompt;
   if (existingSessionPath) {
@@ -103,7 +116,7 @@ Guidelines:
 
   // Store session file path on first message in a thread
   if (!existingSessionPath && session.sessionFile) {
-    threadSessions.set(thread.id, session.sessionFile);
+    await setSessionPath(thread.id, session.sessionFile);
     console.log(`[pi] new session for thread=${thread.id}: ${session.sessionFile}`);
   }
 
@@ -114,15 +127,8 @@ Guidelines:
       case "agent_start":
         console.log("[pi] agent start");
         break;
-      case "agent_end": {
+      case "agent_end":
         console.log("[pi] agent end");
-        break;
-      }
-      case "tool_execution_start":
-        console.log(`[pi] tool: ${event.toolName}`);
-        break;
-      case "tool_execution_end":
-        console.log(`[pi] tool done: ${event.toolName} (${event.isError ? "error" : "ok"})`);
         break;
     }
   });
@@ -144,6 +150,15 @@ Guidelines:
 
   console.log(`[slack] response: ${response.length} chars`);
   await placeholder.edit(response ? { markdown: response } : "(no response)");
+}
+
+bot.onNewMention(async (thread, message) => {
+  await thread.subscribe();
+  await askPi(thread, message);
+});
+
+bot.onSubscribedMessage(async (thread, message) => {
+  await askPi(thread, message);
 });
 
 // ---------------------------------------------------------------------------

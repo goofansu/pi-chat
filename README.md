@@ -1,6 +1,6 @@
 # pi-chat
 
-A Slack bot that answers questions about a codebase using [pi](https://github.com/mariozechner/pi-coding-agent). Mention the bot in any channel and it will use the pi agent to read and analyze the project files before responding.
+A Slack bot that answers questions about a codebase using [pi](https://github.com/mariozechner/pi-coding-agent). Mention the bot in a channel to start a thread — follow-up messages in that thread are handled automatically without needing to @mention again.
 
 ## Install
 
@@ -8,7 +8,7 @@ A Slack bot that answers questions about a codebase using [pi](https://github.co
 pnpm install
 ```
 
-Copy the example env file and fill in your Slack credentials:
+Copy the example env file and fill in your credentials:
 
 ```bash
 cp .env.example .env
@@ -19,9 +19,14 @@ cp .env.example .env
 | `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) |
 | `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** |
 | `PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/openapply`) |
+| `REDIS_URL` | Redis connection URL (e.g. `redis://localhost:6379`) |
 | `PORT` | Port to listen on (default: `4000`) |
 
 The bot uses the `github-copilot/claude-sonnet-4.6` model via pi's model registry. Make sure the model is configured in your pi credentials (`~/.pi/agent/auth.json`).
+
+## Requirements
+
+- A Redis server for persisting thread subscriptions and conversation history across restarts
 
 ## Usage
 
@@ -49,4 +54,4 @@ Then mention the bot in any channel with a question:
 @pi what does the CrmEmailCampaignWorker do?
 ```
 
-The bot will read the codebase under `~/work/openapply` and reply in the thread. Each mention starts a fresh session with no history from previous questions.
+The bot subscribes to the thread and replies. You can continue the conversation with follow-up messages — no need to @mention again. Conversation history and thread subscriptions persist in Redis, so they survive server restarts.
