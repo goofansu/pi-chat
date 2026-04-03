@@ -1,0 +1,54 @@
+{
+    "display_information": {
+        "name": "Pi chat",
+        "description": "Talk with pi coding agent"
+    },
+    "features": {
+        "bot_user": {
+            "display_name": "pi",
+            "always_online": true
+        }
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "app_mentions:read",
+                "channels:history",
+                "channels:read",
+                "chat:write",
+                "groups:history",
+                "groups:read",
+                "im:history",
+                "im:read",
+                "mpim:history",
+                "mpim:read",
+                "reactions:read",
+                "reactions:write",
+                "users:read"
+            ]
+        },
+        "pkce_enabled": false
+    },
+    "settings": {
+        "event_subscriptions": {
+            "request_url": "https://ovine-braggadocian-karol.ngrok-free.dev/api/webhooks/slack",
+            "bot_events": [
+                "app_mention",
+                "message.channels",
+                "message.groups",
+                "message.im",
+                "message.mpim",
+                "member_joined_channel",
+                "assistant_thread_started",
+                "assistant_thread_context_changed"
+            ]
+        },
+        "interactivity": {
+            "is_enabled": true,
+            "request_url": "https://ovine-braggadocian-karol.ngrok-free.dev/api/webhooks/slack"
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false
+    }
+}
