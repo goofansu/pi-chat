@@ -62,6 +62,9 @@ bot.onNewMention(async (thread, message) => {
   // Fresh session per mention — no history carried over
   const loader = new DefaultResourceLoader({
     cwd: PROJECT_DIR,
+    noExtensions: true,
+    noSkills: true,
+    noPromptTemplates: true,
     systemPromptOverride: () =>
       `You are a support assistant that answers questions about this project's codebase.
 
