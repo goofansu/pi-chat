@@ -57,6 +57,8 @@ bot.onNewMention(async (thread, message) => {
 
   console.log(`[pi] prompt: ${prompt}`);
 
+  const placeholder = await thread.post("_checking\u2026_");
+
   // Fresh session per mention — no history carried over
   const loader = new DefaultResourceLoader({
     cwd: PROJECT_DIR,
@@ -117,7 +119,7 @@ When answering questions:
   response = response.replace(/^---+\s*$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
 
   console.log(`[slack] response: ${response.length} chars`);
-  await thread.post(response ? { markdown: response } : "(no response)");
+  await placeholder.edit(response ? { markdown: response } : "(no response)");
 });
 
 // ---------------------------------------------------------------------------
