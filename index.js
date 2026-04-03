@@ -47,7 +47,7 @@ bot.onNewMention(async (thread, message) => {
     console.log("[slack] no existing thread — skipping history fetch");
   }
   // Strip Slack user IDs (e.g. <@U12345>) from text
-  const strip = (t) => t.replace(/<@[A-Z0-9]+>|@[A-Z0-9]{8,}/g, "").replace(/  +/g, " ").trim();
+  const strip = (t) => t.replace(/@[A-Z0-9]{8,}/g, "").replace(/  +/g, " ").trim();
 
   const history = thread.recentMessages
     .filter((m) => m.id !== message.id)
