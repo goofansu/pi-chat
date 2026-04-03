@@ -36,30 +36,43 @@ const bot = new Chat({
   },
 });
 
+// Map Slack thread ID -> pi session file path (in-process memory)
+const threadSessions = new Map();
+
 bot.onNewMention(async (thread, message) => {
   console.log(`[slack] mention from ${message.author.fullName}: ${message.text}`);
 
-  // Fetch thread history for context (may fail if this is a brand-new top-level message)
-  try {
-    await thread.refresh();
-  } catch (err) {
-    if (err?.data?.error !== "thread_not_found") throw err;
-    console.log("[slack] no existing thread — skipping history fetch");
+  const existingSessionPath = threadSessions.get(thread.id);
+
+  let prompt;
+  if (existingSessionPath) {
+    // Continuing thread — pi session already has history
+    prompt = message.text;
+  } else {
+    // New thread — fetch history for initial context
+    try {
+      await thread.refresh();
+    } catch (err) {
+      if (err?.data?.error !== "thread_not_found") throw err;
+      console.log("[slack] no existing thread — skipping history fetch");
+    }
+    const history = thread.recentMessages
+      .filter((m) => m.id !== message.id)
+      .map((m) => `${m.author.fullName}: ${m.text}`)
+      .join("\n");
+    prompt = history
+      ? `Thread context:\n${history}\n\nQuestion: ${message.text}`
+      : message.text;
   }
-  const history = thread.recentMessages
-    .filter((m) => m.id !== message.id)
-    .map((m) => `${m.author.fullName}: ${m.text}`)
-    .join("\n");
 
-  const prompt = history
-    ? `Thread context:\n${history}\n\nQuestion: ${message.text}`
-    : message.text;
-
-  console.log(`[pi] prompt: ${prompt}`);
+  console.log(`[pi] prompt (thread=${thread.id}): ${prompt}`);
 
   const placeholder = await thread.post("_checking\u2026_");
 
-  // Fresh session per mention — no history carried over
+  const sessionManager = existingSessionPath
+    ? SessionManager.open(existingSessionPath)
+    : SessionManager.create(PROJECT_DIR);
+
   const loader = new DefaultResourceLoader({
     cwd: PROJECT_DIR,
     noExtensions: true,
@@ -83,10 +96,16 @@ Guidelines:
   const { session } = await createAgentSession({
     cwd: PROJECT_DIR,
     tools: createReadOnlyTools(PROJECT_DIR),
-    sessionManager: SessionManager.inMemory(),
+    sessionManager,
     model,
     resourceLoader: loader,
   });
+
+  // Store session file path on first message in a thread
+  if (!existingSessionPath && session.sessionFile) {
+    threadSessions.set(thread.id, session.sessionFile);
+    console.log(`[pi] new session for thread=${thread.id}: ${session.sessionFile}`);
+  }
 
   let response = "";
 
