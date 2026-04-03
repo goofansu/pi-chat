@@ -10,6 +10,7 @@ import {
   ModelRegistry,
   DefaultResourceLoader,
 } from "@mariozechner/pi-coding-agent";
+import { execSync } from "node:child_process";
 
 // ---------------------------------------------------------------------------
 // 1. Project directory for pi sessions
@@ -18,11 +19,41 @@ const PROJECT_DIR = (process.env.PROJECT_DIR ?? "").replace(/^~/, process.env.HO
 if (!PROJECT_DIR) throw new Error("PROJECT_DIR env variable is required");
 console.log("[pi] Project dir:", PROJECT_DIR);
 
+const curlTool = {
+  name: "curl",
+  label: "curl",
+  description: "Execute a curl command to make HTTP requests.",
+  parameters: {
+    type: "object",
+    required: ["command"],
+    properties: {
+      command: { type: "string", description: "A curl command to execute" },
+    },
+  },
+  execute: async (_id, params, _signal, _onUpdate, _ctx) => {
+    const command = params.command;
+    if (!command.trim().startsWith("curl")) {
+      return { content: [{ type: "text", text: "Error: only curl commands are allowed" }], details: {} };
+    }
+    try {
+      const output = execSync(command, { encoding: "utf8", timeout: 15000 });
+      return { content: [{ type: "text", text: output }], details: {} };
+    } catch (e) {
+      return { content: [{ type: "text", text: e.message }], details: {} };
+    }
+  },
+};
+
 const authStorage = AuthStorage.create();
 const modelRegistry = ModelRegistry.create(authStorage);
 const model = modelRegistry.find("github-copilot", "claude-sonnet-4.6");
 if (!model) throw new Error("Model github-copilot/claude-sonnet-4.6 not found");
 console.log("[pi] Model:", model.id);
+
+const tools = createReadOnlyTools(PROJECT_DIR);
+const customTools = [curlTool];
+const allToolNames = [...tools, ...customTools].map((t) => t.name).join(", ");
+console.log("[pi] Tools:", allToolNames);
 
 // ---------------------------------------------------------------------------
 // 2. Create the bot
@@ -89,8 +120,11 @@ async function askPi(thread, message) {
   const loader = new DefaultResourceLoader({
     cwd: PROJECT_DIR,
     noExtensions: true,
-    noSkills: true,
     noPromptTemplates: true,
+    skillsOverride: (current) => ({
+      skills: current.skills.filter((s) => s.name === "web-search"),
+      diagnostics: current.diagnostics,
+    }),
     systemPromptOverride: () =>
       `You are a support assistant that answers questions about this project's codebase.
 
@@ -108,7 +142,8 @@ Guidelines:
 
   const { session } = await createAgentSession({
     cwd: PROJECT_DIR,
-    tools: createReadOnlyTools(PROJECT_DIR),
+    tools,
+    customTools,
     sessionManager,
     model,
     resourceLoader: loader,
