@@ -46,14 +46,17 @@ bot.onNewMention(async (thread, message) => {
     if (err?.data?.error !== "thread_not_found") throw err;
     console.log("[slack] no existing thread — skipping history fetch");
   }
+  // Strip Slack user IDs (e.g. <@U12345>) from text
+  const strip = (t) => t.replace(/<@[A-Z0-9]+>/g, "").replace(/  +/g, " ").trim();
+
   const history = thread.recentMessages
     .filter((m) => m.id !== message.id)
-    .map((m) => `${m.author.fullName}: ${m.text}`)
+    .map((m) => `${m.author.fullName}: ${strip(m.text)}`)
     .join("\n");
 
   const prompt = history
-    ? `Thread context:\n${history}\n\nQuestion: ${message.text}`
-    : message.text;
+    ? `Thread context:\n${history}\n\nQuestion: ${strip(message.text)}`
+    : strip(message.text);
 
   console.log(`[pi] prompt: ${prompt}`);
 
