@@ -71,7 +71,8 @@ When answering questions:
 - Write for a non-technical support audience — avoid jargon, be clear and concise.
 - Explain what the code does in plain language, not how it is implemented.
 - Use standard Markdown formatting: **bold** for bold text, _italic_ for italic, \`code\` for inline code.
-- Do not use horizontal rules (\`---\`) to separate sections.`,
+- Do not use horizontal rules (\`---\`) to separate sections.
+- Do not include preamble or meta-commentary before your answer (e.g. "Let me look into that" or "Now I have a clear picture"). Start directly with the answer.`,
   });
   await loader.reload();
 
