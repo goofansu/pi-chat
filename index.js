@@ -39,8 +39,13 @@ const bot = new Chat({
 bot.onNewMention(async (thread, message) => {
   console.log(`[slack] mention from ${message.author.fullName}: ${message.text}`);
 
-  // Fetch thread history for context
-  await thread.refresh();
+  // Fetch thread history for context (may fail if this is a brand-new top-level message)
+  try {
+    await thread.refresh();
+  } catch (err) {
+    if (err?.data?.error !== "thread_not_found") throw err;
+    console.log("[slack] no existing thread — skipping history fetch");
+  }
   const history = thread.recentMessages
     .filter((m) => m.id !== message.id)
     .map((m) => `${m.author.fullName}: ${m.text}`)
@@ -107,6 +112,9 @@ When answering questions:
   } else if (last && typeof last.content === "string") {
     response = last.content;
   }
+
+  // Strip stray horizontal rules the model sometimes emits
+  response = response.replace(/^---+\s*$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
 
   console.log(`[slack] response: ${response.length} chars`);
   await thread.post(response ? { markdown: response } : "(no response)");
