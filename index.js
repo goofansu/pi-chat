@@ -82,6 +82,7 @@ const bot = new Chat({
     slack: createSlackAdapter(),
   },
 });
+await bot.initialize();
 
 async function askPi(thread, message) {
   console.log(`[slack] message from ${message.author.fullName}: ${message.text}`);
@@ -242,7 +243,5 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`Bot listening on http://localhost:${PORT}`);
-  console.log(`Slack webhook URL: http://localhost:${PORT}${WEBHOOK_PATH}`);
-});
+server.listen(PORT);
+server.on("error", (err) => console.error("[server] Failed to listen:", err.message));
