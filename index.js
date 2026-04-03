@@ -22,6 +22,7 @@ const authStorage = AuthStorage.create();
 const modelRegistry = ModelRegistry.create(authStorage);
 const model = modelRegistry.find("github-copilot", "claude-sonnet-4.6");
 if (!model) throw new Error("Model github-copilot/claude-sonnet-4.6 not found");
+console.log("[pi] Model:", model.id);
 
 // ---------------------------------------------------------------------------
 // 2. Create the bot
