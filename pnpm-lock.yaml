@@ -11,9 +11,6 @@ importers:
       '@chat-adapter/slack':
         specifier: ^4.23.0
         version: 4.23.0
-      '@chat-adapter/state-memory':
-        specifier: ^4.23.0
-        version: 4.23.0
       '@chat-adapter/state-redis':
         specifier: ^4.23.0
         version: 4.23.0
@@ -187,9 +184,6 @@ packages:
 
   '@chat-adapter/slack@4.23.0':
     resolution: {integrity: sha512-J5Ml/Ug8Zdb3zVIcbMhkei9U9aTeY+uqpzuuzcHkwdJC6FDFhwj5TSiuocckctqW9tMCqzFl4h4gU5q9f6KSGA==}
-
-  '@chat-adapter/state-memory@4.23.0':
-    resolution: {integrity: sha512-IlAVV4MGpjdassiI4haNAzWdFl66xFAfqM5DnWAGZdndkQj0LNMigcxhOgyS++yQUUWWvT1yRKwCswenCvxWVw==}
 
   '@chat-adapter/state-redis@4.23.0':
     resolution: {integrity: sha512-MVOWHz4NjsXc3t7jH5B0juzjCwL7Cn/mz3zblKl6qQxgEIy2rxeP9a+mxvb1KC6zLX1gzKxMOocFEpzjIbotBQ==}
@@ -1866,12 +1860,6 @@ snapshots:
       chat: 4.23.0
     transitivePeerDependencies:
       - debug
-      - supports-color
-
-  '@chat-adapter/state-memory@4.23.0':
-    dependencies:
-      chat: 4.23.0
-    transitivePeerDependencies:
       - supports-color
 
   '@chat-adapter/state-redis@4.23.0':
