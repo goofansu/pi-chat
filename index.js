@@ -13,11 +13,18 @@ import {
 import { execSync } from "node:child_process";
 
 // ---------------------------------------------------------------------------
-// 1. Project directory for pi sessions
+// 1. Config
 // ---------------------------------------------------------------------------
 const PROJECT_DIR = (process.env.PROJECT_DIR ?? "").replace(/^~/, process.env.HOME);
 if (!PROJECT_DIR) throw new Error("PROJECT_DIR env variable is required");
+const PROJECT_NAME = PROJECT_DIR.split("/").filter(Boolean).at(-1);
 console.log("[pi] Project dir:", PROJECT_DIR);
+
+const authStorage = AuthStorage.create();
+const modelRegistry = ModelRegistry.create(authStorage);
+const model = modelRegistry.find("github-copilot", "claude-sonnet-4.6");
+if (!model) throw new Error("Model github-copilot/claude-sonnet-4.6 not found");
+console.log("[pi] Model:", model.id);
 
 const curlTool = {
   name: "curl",
@@ -44,19 +51,40 @@ const curlTool = {
   },
 };
 
-const authStorage = AuthStorage.create();
-const modelRegistry = ModelRegistry.create(authStorage);
-const model = modelRegistry.find("github-copilot", "claude-sonnet-4.6");
-if (!model) throw new Error("Model github-copilot/claude-sonnet-4.6 not found");
-console.log("[pi] Model:", model.id);
-
 const tools = createReadOnlyTools(PROJECT_DIR);
 const customTools = [curlTool];
-const allToolNames = [...tools, ...customTools].map((t) => t.name).join(", ");
-console.log("[pi] Tools:", allToolNames);
+console.log("[pi] Tools:", [...tools, ...customTools].map((t) => t.name).join(", "));
 
 // ---------------------------------------------------------------------------
-// 2. Create the bot
+// 2. Resource loader (shared across all sessions)
+// ---------------------------------------------------------------------------
+const loader = new DefaultResourceLoader({
+  cwd: PROJECT_DIR,
+  noExtensions: true,
+  noPromptTemplates: true,
+  skillsOverride: (current) => ({
+    skills: current.skills.filter((s) => s.name === "web-search"),
+    diagnostics: current.diagnostics,
+  }),
+  systemPromptOverride: () =>
+    `You are a support assistant for the ${PROJECT_NAME} codebase. You only answer questions about ${PROJECT_NAME} — its code, architecture, features, and behaviour.
+
+If a question is unrelated to ${PROJECT_NAME}, refuse it directly and briefly. Do not attempt to help with unrelated topics.
+
+Always read the relevant source files before answering — do not guess or speculate.
+If you cannot find the answer in the code, say so honestly.
+
+Guidelines:
+- Be clear and concise. Explain what things do in plain language.
+- Include code snippets only when they help.
+- Use Markdown: **bold**, _italic_, \`code\`. Use headings sparingly.
+- Start with the answer. No preamble, thinking-out-loud, or filler sentences.
+- Stay within the project directory. Do not reference or read external files.`,
+});
+await loader.reload();
+
+// ---------------------------------------------------------------------------
+// 3. Create the bot
 //    Reads SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET from env automatically.
 // ---------------------------------------------------------------------------
 
@@ -118,29 +146,6 @@ async function askPi(thread, message) {
     ? SessionManager.open(existingSessionPath)
     : SessionManager.create(PROJECT_DIR);
 
-  const loader = new DefaultResourceLoader({
-    cwd: PROJECT_DIR,
-    noExtensions: true,
-    noPromptTemplates: true,
-    skillsOverride: (current) => ({
-      skills: current.skills.filter((s) => s.name === "web-search"),
-      diagnostics: current.diagnostics,
-    }),
-    systemPromptOverride: () =>
-      `You are a support assistant that answers questions about this project's codebase.
-
-Always read the relevant source files before answering — do not guess or speculate.
-If you cannot find the answer in the code, say so honestly.
-
-Guidelines:
-- Be clear and concise. Explain what things do in plain language.
-- Include code snippets only when they help.
-- Use Markdown: **bold**, _italic_, \`code\`. Use headings sparingly.
-- Start with the answer. No preamble, thinking-out-loud, or filler sentences.
-- Stay within the project directory. Do not reference or read external files.`,
-  });
-  await loader.reload();
-
   const { session } = await createAgentSession({
     cwd: PROJECT_DIR,
     tools,
@@ -198,7 +203,7 @@ bot.onSubscribedMessage(async (thread, message) => {
 });
 
 // ---------------------------------------------------------------------------
-// 2. Minimal HTTP server
+// 4. HTTP server
 //    Bridges Node.js IncomingMessage ↔ Web-standard Request/Response so we
 //    can hand requests straight to bot.webhooks.slack without extra deps.
 // ---------------------------------------------------------------------------
