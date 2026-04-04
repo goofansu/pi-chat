@@ -20,7 +20,7 @@ interface ImageContent {
 	mimeType: string;
 }
 
-import { type Attachment, Chat, type Message, type Thread } from "chat";
+import { type Attachment, Chat, emoji, type Message, type Thread } from "chat";
 
 // ---------------------------------------------------------------------------
 // 1. Config
@@ -200,7 +200,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 
 	console.log(`[pi] prompt (thread=${thread.id}): ${prompt}`);
 
-	const placeholder = await thread.post("_checking\u2026_");
+	await thread.adapter.addReaction(thread.id, message.id, emoji.eyes);
 
 	const sessionManager = existingSessionPath
 		? SessionManager.open(existingSessionPath as string)
@@ -236,26 +236,36 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 		}
 	});
 
-	await session.prompt(prompt, images.length > 0 ? { images } : undefined);
+	try {
+		await session.prompt(prompt, images.length > 0 ? { images } : undefined);
 
-	const last = session.messages.findLast((m) => m.role === "assistant");
-	if (last && Array.isArray(last.content)) {
-		response = last.content
-			.filter((c) => c.type === "text")
-			.map((c) => c.text)
-			.join("");
-	} else if (last && typeof last.content === "string") {
-		response = last.content;
+		const last = session.messages.findLast((m) => m.role === "assistant");
+		if (last && Array.isArray(last.content)) {
+			response = last.content
+				.filter((c) => c.type === "text")
+				.map((c) => c.text)
+				.join("");
+		} else if (last && typeof last.content === "string") {
+			response = last.content;
+		}
+
+		// Strip stray horizontal rules the model sometimes emits
+		response = response
+			.replace(/^---+\s*$/gm, "")
+			.replace(/\n{3,}/g, "\n\n")
+			.trim();
+
+		console.log(`[slack] response: ${response.length} chars`);
+		await thread.post(response ? { markdown: response } : "(no response)");
+		await thread.adapter.removeReaction(thread.id, message.id, emoji.eyes);
+		await thread.adapter.addReaction(thread.id, message.id, emoji.check);
+	} catch (err) {
+		console.error("[pi] session error:", err);
+		await thread.adapter.removeReaction(thread.id, message.id, emoji.eyes);
+		await thread.adapter.addReaction(thread.id, message.id, emoji.x);
+		const msg = err instanceof Error ? err.message : String(err);
+		await thread.post(`_Error: ${msg}_`);
 	}
-
-	// Strip stray horizontal rules the model sometimes emits
-	response = response
-		.replace(/^---+\s*$/gm, "")
-		.replace(/\n{3,}/g, "\n\n")
-		.trim();
-
-	console.log(`[slack] response: ${response.length} chars`);
-	await placeholder.edit(response ? { markdown: response } : "(no response)");
 }
 
 bot.onNewMention(async (thread, message) => {
