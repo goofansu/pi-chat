@@ -2,7 +2,7 @@
 
 Chat with [pi](https://github.com/mariozechner/pi-coding-agent) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and Redis-backed state — pi handles reading and reasoning about the codebase.
 
-Mention the bot in any channel to start a thread. Follow-up messages in that thread are handled automatically without needing to @mention again.
+Mention the bot in any channel to start a thread. Follow-up messages in that thread are handled automatically without needing to `@mention` again.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ Mention the bot in any channel to start a thread. Follow-up messages in that thr
 pnpm install
 ```
 
-Copy the example env file and fill in your credentials:
+Copy the example env file and fill in the values:
 
 ```bash
 cp .env.example .env
@@ -22,14 +22,14 @@ cp .env.example .env
 
 | Variable | Description |
 |---|---|
-| `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) |
-| `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** |
+| `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) — required |
+| `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** — required |
 | `REDIS_URL` | Redis connection URL (e.g. `redis://localhost:6379`) |
 | `PORT` | Port to listen on (default: `4000`) |
-| `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) |
-| `PI_MODEL_ID` | Model to use in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) |
+| `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) — required |
+| `PI_MODEL_ID` | Model in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) — required |
 
-Make sure the model is configured in your pi credentials (`~/.pi/agent/auth.json`).
+Make sure your pi credentials include a valid auth token for the model's provider (`~/.pi/agent/auth.json`).
 
 ## Usage
 
@@ -61,4 +61,7 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 
 ## Security
 
-The bot has access to two sets of tools. The four built-in read-only tools let it read files, search for text, and list directories within `PI_PROJECT_DIR` — it cannot write or execute anything in the project. The custom `curl` tool enables outbound HTTP requests, used to power search skills such as [web-search](https://skills.sh/brave/brave-search-skills/web-search).
+The bot has access to two sets of tools:
+
+- **`read`, `grep`, `find`, `ls`** — built-in read-only tools scoped to `PI_PROJECT_DIR`; they cannot write or execute anything in the project.
+- **`curl`** — a custom tool for outbound HTTP requests, used to power search skills such as [web-search](https://skills.sh/brave/brave-search-skills/web-search).
