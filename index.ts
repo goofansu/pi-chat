@@ -115,7 +115,10 @@ await loader.reload();
 // ---------------------------------------------------------------------------
 
 // Redis state — shared between Chat SDK and pi session persistence
-const state = createRedisState();
+const REDIS_URL = process.env.REDIS_URL;
+if (!REDIS_URL) throw new Error("REDIS_URL env variable is required");
+
+const state = createRedisState({ url: REDIS_URL });
 await state.connect();
 
 const SESSION_KEY_PREFIX = "pi:session:";

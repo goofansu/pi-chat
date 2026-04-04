@@ -26,7 +26,7 @@ cp .env.example .env
 | `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
 | `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
 | `PI_MODEL_ID` | Model in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) | Yes |
-| `REDIS_URL` | Redis connection URL | No (default: `redis://localhost:6379`) |
+| `REDIS_URL` | Redis connection URL | Yes |
 | `PORT` | Port to listen on | No (default: `4000`) |
 
 Make sure your pi credentials include a valid auth token for the model's provider (`~/.pi/agent/auth.json`).
