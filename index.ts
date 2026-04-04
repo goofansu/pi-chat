@@ -12,7 +12,15 @@ import {
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { Chat, type Message, type Thread } from "chat";
+
+/** Matches @mariozechner/pi-ai ImageContent */
+interface ImageContent {
+	type: "image";
+	data: string;
+	mimeType: string;
+}
+
+import { type Attachment, Chat, type Message, type Thread } from "chat";
 
 // ---------------------------------------------------------------------------
 // 1. Config
@@ -125,12 +133,40 @@ const bot = new Chat({
 });
 await bot.initialize();
 
+// ---------------------------------------------------------------------------
+// Attachment helpers
+// ---------------------------------------------------------------------------
+
+async function fetchImages(attachments: Attachment[]): Promise<ImageContent[]> {
+	const images: ImageContent[] = [];
+	for (const attachment of attachments) {
+		if (!attachment.mimeType?.startsWith("image/") || !attachment.fetchData)
+			continue;
+		try {
+			const data = await attachment.fetchData();
+			images.push({
+				type: "image",
+				data: data.toString("base64"),
+				mimeType: attachment.mimeType,
+			});
+		} catch (err) {
+			console.error(`[pi] Failed to fetch image ${attachment.name}:`, err);
+		}
+	}
+	return images;
+}
+
 async function askPi(thread: Thread, message: Message): Promise<void> {
 	console.log(
 		`[slack] message from ${message.author.fullName}: ${message.text}`,
 	);
 
 	const existingSessionPath = await getSessionPath(thread.id);
+
+	// Fetch image attachments
+	const images = await fetchImages(message.attachments);
+	if (images.length > 0)
+		console.log(`[pi] attachments: ${images.length} image(s)`);
 
 	let prompt: string;
 	if (existingSessionPath) {
@@ -155,6 +191,11 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 		prompt = history
 			? `Thread context:\n${history}\n\nQuestion: ${message.text}`
 			: message.text;
+	}
+
+	if (!prompt.trim() && images.length === 0) {
+		console.log(`[pi] skipping empty prompt (thread=${thread.id})`);
+		return;
 	}
 
 	console.log(`[pi] prompt (thread=${thread.id}): ${prompt}`);
@@ -195,7 +236,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 		}
 	});
 
-	await session.prompt(prompt);
+	await session.prompt(prompt, images.length > 0 ? { images } : undefined);
 
 	const last = session.messages.findLast((m) => m.role === "assistant");
 	if (last && Array.isArray(last.content)) {
