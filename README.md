@@ -24,7 +24,7 @@ cp .env.example .env
 |---|---|
 | `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) |
 | `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** |
-| `PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) |
+| `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) |
 | `REDIS_URL` | Redis connection URL (e.g. `redis://localhost:6379`) |
 | `PORT` | Port to listen on (default: `4000`) |
 

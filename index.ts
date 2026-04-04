@@ -25,13 +25,13 @@ import { type Attachment, Chat, emoji, type Message, type Thread } from "chat";
 // ---------------------------------------------------------------------------
 // 1. Config
 // ---------------------------------------------------------------------------
-const PROJECT_DIR = (process.env.PROJECT_DIR ?? "").replace(
+const projectDir = (process.env.PI_PROJECT_DIR ?? "").replace(
 	/^~/,
 	process.env.HOME ?? "",
 );
-if (!PROJECT_DIR) throw new Error("PROJECT_DIR env variable is required");
-const PROJECT_NAME = PROJECT_DIR.split("/").filter(Boolean).at(-1);
-console.log("[pi] Project dir:", PROJECT_DIR);
+if (!projectDir) throw new Error("PI_PROJECT_DIR env variable is required");
+const projectName = projectDir.split("/").filter(Boolean).at(-1);
+console.log("[pi] Project dir:", projectDir);
 
 const authStorage = AuthStorage.create();
 const modelRegistry = ModelRegistry.create(authStorage);
@@ -73,7 +73,7 @@ const curlTool = defineTool({
 	},
 });
 
-const tools = createReadOnlyTools(PROJECT_DIR);
+const tools = createReadOnlyTools(projectDir);
 const customTools = [curlTool];
 console.log(
 	"[pi] Tools:",
@@ -84,7 +84,7 @@ console.log(
 // 2. Resource loader (shared across all sessions)
 // ---------------------------------------------------------------------------
 const loader = new DefaultResourceLoader({
-	cwd: PROJECT_DIR,
+	cwd: projectDir,
 	noExtensions: true,
 	noPromptTemplates: true,
 	skillsOverride: (current) => ({
@@ -92,9 +92,9 @@ const loader = new DefaultResourceLoader({
 		diagnostics: current.diagnostics,
 	}),
 	systemPromptOverride: () =>
-		`You are a support assistant for the ${PROJECT_NAME} codebase. You only answer questions about ${PROJECT_NAME} — its code, architecture, features, and behaviour.
+		`You are a support assistant for the ${projectName} codebase. You only answer questions about ${projectName} — its code, architecture, features, and behaviour.
 
-If a question is unrelated to ${PROJECT_NAME}, refuse it directly and briefly. Do not attempt to help with unrelated topics.
+If a question is unrelated to ${projectName}, refuse it directly and briefly. Do not attempt to help with unrelated topics.
 
 Always read the relevant source files before answering — do not guess or speculate.
 If you cannot find the answer in the code, say so honestly.
@@ -211,10 +211,10 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 
 	const sessionManager = existingSessionPath
 		? SessionManager.open(existingSessionPath as string)
-		: SessionManager.create(PROJECT_DIR);
+		: SessionManager.create(projectDir);
 
 	const { session } = await createAgentSession({
-		cwd: PROJECT_DIR,
+		cwd: projectDir,
 		tools,
 		customTools,
 		sessionManager,
