@@ -2,7 +2,8 @@
 	"type": "module",
 	"scripts": {
 		"start": "node --env-file=.env --experimental-strip-types index.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check index.ts"
 	},
 	"dependencies": {
 		"@chat-adapter/slack": "^4.23.0",
@@ -12,6 +13,7 @@
 		"chat": "^4.23.0"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.4.10",
 		"@types/node": "^25.5.2",
 		"typescript": "^6.0.2"
 	}
