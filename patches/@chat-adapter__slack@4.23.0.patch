@@ -1,0 +1,28 @@
+diff --git a/dist/index.js b/dist/index.js
+index 732fac74f5416c224d6d7d4ccf497dff7df09e8e..af3b5eb911dc5565053527cf08bbb41ec562378d 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -271,12 +271,12 @@ ${tableElementToAscii(element.headers, element.rows)}
+   state.usedNativeTable = true;
+   const headerRow = element.headers.map((header) => ({
+     type: "raw_text",
+-    text: convertEmoji(header)
++    text: convertEmoji(header) || " "
+   }));
+   const dataRows = element.rows.map(
+     (row) => row.map((cell) => ({
+       type: "raw_text",
+-      text: convertEmoji(cell)
++      text: convertEmoji(cell) || " "
+     }))
+   );
+   return [
+@@ -548,7 +548,7 @@ function mdastTableToSlackBlock(node, cellConverter) {
+   for (const row of node.children) {
+     const cells = getNodeChildren(row).map((cell) => ({
+       type: "raw_text",
+-      text: getNodeChildren(cell).map(cellConverter).join("")
++      text: getNodeChildren(cell).map(cellConverter).join("") || " "
+     }));
+     rows.push(cells);
+   }

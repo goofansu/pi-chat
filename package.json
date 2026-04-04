@@ -12,6 +12,11 @@
 		"@sinclair/typebox": "^0.34.49",
 		"chat": "^4.23.0"
 	},
+	"pnpm": {
+		"patchedDependencies": {
+			"@chat-adapter/slack@4.23.0": "patches/@chat-adapter__slack@4.23.0.patch"
+		}
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.10",
 		"@types/node": "^25.5.2",
