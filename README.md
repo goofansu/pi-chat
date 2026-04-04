@@ -22,7 +22,7 @@ cp .env.example .env
 |---|---|
 | `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) |
 | `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** |
-| `PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/openapply`) |
+| `PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) |
 | `REDIS_URL` | Redis connection URL (e.g. `redis://localhost:6379`) |
 | `PORT` | Port to listen on (default: `4000`) |
 
@@ -51,7 +51,7 @@ https://<your-ngrok-url>/api/webhooks/slack
 Then mention the bot in any channel with a question:
 
 ```
-@pi what does the CrmEmailCampaignWorker do?
+@pi how does the authentication flow work?
 ```
 
 The bot subscribes to the thread and replies. You can continue the conversation with follow-up messages — no need to @mention again. Conversation history and thread subscriptions persist in Redis, so they survive server restarts.
