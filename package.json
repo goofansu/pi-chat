@@ -3,7 +3,7 @@
 	"scripts": {
 		"start": "node --env-file=.env --experimental-strip-types index.ts",
 		"typecheck": "tsc --noEmit",
-		"lint": "biome check index.ts"
+		"lint": "biome check --write index.ts"
 	},
 	"dependencies": {
 		"@chat-adapter/slack": "^4.23.0",
