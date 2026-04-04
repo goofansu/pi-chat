@@ -1,7 +1,8 @@
 {
 	"type": "module",
 	"scripts": {
-		"start": "node --env-file=.env index.js"
+		"start": "node --env-file=.env --experimental-strip-types index.ts",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@chat-adapter/slack": "^4.23.0",
@@ -9,5 +10,9 @@
 		"@mariozechner/pi-coding-agent": "^0.65.0",
 		"@sinclair/typebox": "^0.34.49",
 		"chat": "^4.23.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.5.2",
+		"typescript": "^6.0.2"
 	}
 }

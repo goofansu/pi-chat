@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { Chat } from "chat";
+import { type Message, type Thread, Chat } from "chat";
 import { createRedisState } from "@chat-adapter/state-redis";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import {
@@ -17,7 +17,7 @@ import { Type } from "@sinclair/typebox";
 // ---------------------------------------------------------------------------
 // 1. Config
 // ---------------------------------------------------------------------------
-const PROJECT_DIR = (process.env.PROJECT_DIR ?? "").replace(/^~/, process.env.HOME);
+const PROJECT_DIR = (process.env.PROJECT_DIR ?? "").replace(/^~/, process.env.HOME ?? "");
 if (!PROJECT_DIR) throw new Error("PROJECT_DIR env variable is required");
 const PROJECT_NAME = PROJECT_DIR.split("/").filter(Boolean).at(-1);
 console.log("[pi] Project dir:", PROJECT_DIR);
@@ -44,7 +44,8 @@ const curlTool = defineTool({
       const output = execSync(command, { encoding: "utf8", timeout: 15000 });
       return { content: [{ type: "text", text: output }], details: {} };
     } catch (e) {
-      return { content: [{ type: "text", text: e.message }], details: {} };
+      const msg = e instanceof Error ? e.message : String(e);
+      return { content: [{ type: "text", text: msg }], details: {} };
     }
   },
 });
@@ -92,11 +93,11 @@ await state.connect();
 
 const SESSION_KEY_PREFIX = "pi:session:";
 
-async function getSessionPath(threadId) {
+async function getSessionPath(threadId: string): Promise<string | null> {
   return state.get(`${SESSION_KEY_PREFIX}${threadId}`);
 }
 
-async function setSessionPath(threadId, sessionFile) {
+async function setSessionPath(threadId: string, sessionFile: string): Promise<void> {
   await state.set(`${SESSION_KEY_PREFIX}${threadId}`, sessionFile);
 }
 
@@ -110,7 +111,7 @@ const bot = new Chat({
 });
 await bot.initialize();
 
-async function askPi(thread, message) {
+async function askPi(thread: Thread, message: Message): Promise<void> {
   console.log(`[slack] message from ${message.author.fullName}: ${message.text}`);
 
   const existingSessionPath = await getSessionPath(thread.id);
@@ -124,12 +125,12 @@ async function askPi(thread, message) {
     try {
       await thread.refresh();
     } catch (err) {
-      if (err?.data?.error !== "thread_not_found") throw err;
+      if ((err as { data?: { error?: string } })?.data?.error !== "thread_not_found") throw err;
       console.log("[slack] no existing thread — skipping history fetch");
     }
     const history = thread.recentMessages
-      .filter((m) => m.id !== message.id)
-      .map((m) => `${m.author.fullName}: ${m.text}`)
+      .filter((m: Message) => m.id !== message.id)
+      .map((m: Message) => `${m.author.fullName}: ${m.text}`)
       .join("\n");
     prompt = history
       ? `Thread context:\n${history}\n\nQuestion: ${message.text}`
@@ -141,7 +142,7 @@ async function askPi(thread, message) {
   const placeholder = await thread.post("_checking\u2026_");
 
   const sessionManager = existingSessionPath
-    ? SessionManager.open(existingSessionPath)
+    ? SessionManager.open(existingSessionPath as string)
     : SessionManager.create(PROJECT_DIR);
 
   const { session } = await createAgentSession({
@@ -221,7 +222,7 @@ const server = createServer(async (req, res) => {
         {
           method: req.method,
           headers: Object.fromEntries(
-            Object.entries(req.headers).filter(([, v]) => v !== undefined)
+            (Object.entries(req.headers).filter(([, v]) => v !== undefined) as [string, string][])
           ),
           body: chunks.length ? Buffer.concat(chunks) : undefined,
         }
