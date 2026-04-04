@@ -35,8 +35,15 @@ console.log("[pi] Project dir:", PROJECT_DIR);
 
 const authStorage = AuthStorage.create();
 const modelRegistry = ModelRegistry.create(authStorage);
-const model = modelRegistry.find("github-copilot", "claude-sonnet-4.6");
-if (!model) throw new Error("Model github-copilot/claude-sonnet-4.6 not found");
+const PI_MODEL_ID =
+	process.env.PI_MODEL_ID ?? "github-copilot/claude-sonnet-4.6";
+const [modelProvider, modelId] = PI_MODEL_ID.split("/");
+if (!modelProvider || !modelId)
+	throw new Error(
+		`PI_MODEL_ID must be in the form provider/model, got: ${PI_MODEL_ID}`,
+	);
+const model = modelRegistry.find(modelProvider, modelId);
+if (!model) throw new Error(`Model ${PI_MODEL_ID} not found`);
 console.log("[pi] Model:", model.id);
 
 const curlTool = defineTool({
