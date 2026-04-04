@@ -58,3 +58,7 @@ Then mention the bot in any channel with a question:
 ```
 
 The bot replies in the thread. Conversation history and thread subscriptions persist in Redis across server restarts.
+
+## Security
+
+The bot has access to two sets of tools. The four built-in read-only tools let it read files, search for text, and list directories within `PI_PROJECT_DIR` — it cannot write or execute anything in the project. The custom `curl` tool enables outbound HTTP requests, used to power search skills such as [web-search](https://skills.sh/brave/brave-search-skills/web-search).
