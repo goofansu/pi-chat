@@ -1,10 +1,12 @@
 # pi-chat
 
-A Slack bot that answers questions about a codebase using [pi](https://github.com/mariozechner/pi-coding-agent). Mention the bot in a channel to start a thread — follow-up messages in that thread are handled automatically without needing to @mention again.
+Chat with [pi](https://github.com/mariozechner/pi-coding-agent) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and Redis-backed state — pi handles reading and reasoning about the codebase.
+
+Mention the bot in any channel to start a thread. Follow-up messages in that thread are handled automatically without needing to @mention again.
 
 ## Requirements
 
-- A Redis server for persisting thread subscriptions and conversation history across restarts
+- A Redis server (used by the Chat SDK for thread subscriptions and conversation history)
 
 ## Install
 
