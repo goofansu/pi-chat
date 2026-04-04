@@ -32,7 +32,7 @@
     },
     "settings": {
         "event_subscriptions": {
-            "request_url": "https://ovine-braggadocian-karol.ngrok-free.dev/api/webhooks/slack",
+            "request_url": "https://<your-ngrok-url>/api/webhooks/slack",
             "bot_events": [
                 "app_mention",
                 "message.channels",
@@ -46,7 +46,7 @@
         },
         "interactivity": {
             "is_enabled": true,
-            "request_url": "https://ovine-braggadocian-karol.ngrok-free.dev/api/webhooks/slack"
+            "request_url": "https://<your-ngrok-url>/api/webhooks/slack"
         },
         "org_deploy_enabled": false,
         "socket_mode_enabled": false,
