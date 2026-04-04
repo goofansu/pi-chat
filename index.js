@@ -9,8 +9,10 @@ import {
   AuthStorage,
   ModelRegistry,
   DefaultResourceLoader,
+  defineTool,
 } from "@mariozechner/pi-coding-agent";
 import { execSync } from "node:child_process";
+import { Type } from "@sinclair/typebox";
 
 // ---------------------------------------------------------------------------
 // 1. Config
@@ -26,18 +28,14 @@ const model = modelRegistry.find("github-copilot", "claude-sonnet-4.6");
 if (!model) throw new Error("Model github-copilot/claude-sonnet-4.6 not found");
 console.log("[pi] Model:", model.id);
 
-const curlTool = {
+const curlTool = defineTool({
   name: "curl",
   label: "curl",
   description: "Execute a curl command to make HTTP requests.",
-  parameters: {
-    type: "object",
-    required: ["command"],
-    properties: {
-      command: { type: "string", description: "A curl command to execute" },
-    },
-  },
-  execute: async (_id, params, _signal, _onUpdate, _ctx) => {
+  parameters: Type.Object({
+    command: Type.String({ description: "A curl command to execute" }),
+  }),
+  execute: async (_id, params) => {
     const command = params.command;
     if (!command.trim().startsWith("curl")) {
       return { content: [{ type: "text", text: "Error: only curl commands are allowed" }], details: {} };
@@ -49,7 +47,7 @@ const curlTool = {
       return { content: [{ type: "text", text: e.message }], details: {} };
     }
   },
-};
+});
 
 const tools = createReadOnlyTools(PROJECT_DIR);
 const customTools = [curlTool];
