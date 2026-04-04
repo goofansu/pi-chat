@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { createServer } from "node:http";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createRedisState } from "@chat-adapter/state-redis";
@@ -7,11 +6,9 @@ import {
 	createAgentSession,
 	createReadOnlyTools,
 	DefaultResourceLoader,
-	defineTool,
 	ModelRegistry,
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
 
 /** Matches @mariozechner/pi-ai ImageContent */
 interface ImageContent {
@@ -47,39 +44,8 @@ const model = modelRegistry.find(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_MODEL_ID} not found`);
 console.log("[pi] Model:", model.id);
 
-const curlTool = defineTool({
-	name: "curl",
-	label: "curl",
-	description: "Execute a curl command to make HTTP requests.",
-	parameters: Type.Object({
-		command: Type.String({ description: "A curl command to execute" }),
-	}),
-	execute: async (_id, params) => {
-		const command = params.command;
-		if (!command.trim().startsWith("curl")) {
-			return {
-				content: [
-					{ type: "text", text: "Error: only curl commands are allowed" },
-				],
-				details: {},
-			};
-		}
-		try {
-			const output = execSync(command, { encoding: "utf8", timeout: 15000 });
-			return { content: [{ type: "text", text: output }], details: {} };
-		} catch (e) {
-			const msg = e instanceof Error ? e.message : String(e);
-			return { content: [{ type: "text", text: msg }], details: {} };
-		}
-	},
-});
-
 const tools = createReadOnlyTools(projectDir);
-const customTools = [curlTool];
-console.log(
-	"[pi] Tools:",
-	[...tools, ...customTools].map((t) => t.name).join(", "),
-);
+console.log("[pi] Tools:", tools.map((t) => t.name).join(", "));
 
 // ---------------------------------------------------------------------------
 // 2. Resource loader (shared across all sessions)
@@ -220,7 +186,6 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 	const { session } = await createAgentSession({
 		cwd: projectDir,
 		tools,
-		customTools,
 		sessionManager,
 		model,
 		resourceLoader: loader,

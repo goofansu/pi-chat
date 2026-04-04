@@ -61,7 +61,4 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 
 ## Security
 
-The bot has access to two sets of tools:
-
-- **`read`, `grep`, `find`, `ls`** — built-in read-only tools scoped to `PI_PROJECT_DIR`; they cannot write or execute anything in the project.
-- **`curl`** — a custom tool for outbound HTTP requests, used to power search skills such as [web-search](https://skills.sh/brave/brave-search-skills/web-search).
+The bot has access to read-only tools scoped to `PI_PROJECT_DIR`: **`read`, `grep`, `find`, `ls`**. These tools cannot write or execute anything in the project.
