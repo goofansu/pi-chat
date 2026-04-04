@@ -2,6 +2,10 @@
 
 A Slack bot that answers questions about a codebase using [pi](https://github.com/mariozechner/pi-coding-agent). Mention the bot in a channel to start a thread — follow-up messages in that thread are handled automatically without needing to @mention again.
 
+## Requirements
+
+- A Redis server for persisting thread subscriptions and conversation history across restarts
+
 ## Install
 
 ```bash
@@ -23,10 +27,6 @@ cp .env.example .env
 | `PORT` | Port to listen on (default: `4000`) |
 
 The bot uses the `github-copilot/claude-sonnet-4.6` model via pi's model registry. Make sure the model is configured in your pi credentials (`~/.pi/agent/auth.json`).
-
-## Requirements
-
-- A Redis server for persisting thread subscriptions and conversation history across restarts
 
 ## Usage
 
