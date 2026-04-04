@@ -56,4 +56,4 @@ Then mention the bot in any channel with a question:
 @pi how does the authentication flow work?
 ```
 
-The bot subscribes to the thread and replies. You can continue the conversation with follow-up messages — no need to @mention again. Conversation history and thread subscriptions persist in Redis, so they survive server restarts.
+The bot replies in the thread. Conversation history and thread subscriptions persist in Redis across server restarts.
