@@ -244,6 +244,22 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 	}
 }
 
+bot.onReaction(["thumbs_up"], async (event) => {
+	if (!event.added) return;
+
+	try {
+		const raw = event.raw as { item: { channel: string; ts: string } };
+		const res = await fetch(
+			`https://slack.com/api/chat.getPermalink?channel=${raw.item.channel}&message_ts=${raw.item.ts}`,
+			{ headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` } },
+		);
+		const data = (await res.json()) as { ok: boolean; permalink?: string };
+		if (data.ok) console.log(`[pi] thumbs_up ${data.permalink}`);
+	} catch (err) {
+		console.error("[pi] thumbs_up permalink error:", err);
+	}
+});
+
 bot.onNewMention(async (thread, message) => {
 	await thread.subscribe();
 	await askPi(thread, message);

@@ -35,13 +35,14 @@
             "request_url": "https://<your-ngrok-url>/api/webhooks/slack",
             "bot_events": [
                 "app_mention",
+                "assistant_thread_context_changed",
+                "assistant_thread_started",
+                "member_joined_channel",
                 "message.channels",
                 "message.groups",
                 "message.im",
                 "message.mpim",
-                "member_joined_channel",
-                "assistant_thread_started",
-                "assistant_thread_context_changed"
+                "reaction_added"
             ]
         },
         "interactivity": {
