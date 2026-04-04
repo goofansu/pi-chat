@@ -20,14 +20,14 @@ Copy the example env file and fill in the values:
 cp .env.example .env
 ```
 
-| Variable | Description |
-|---|---|
-| `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) — required |
-| `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** — required |
-| `REDIS_URL` | Redis connection URL (e.g. `redis://localhost:6379`) |
-| `PORT` | Port to listen on (default: `4000`) |
-| `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) — required |
-| `PI_MODEL_ID` | Model in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) — required |
+| Variable | Description | Required |
+|---|---|---|
+| `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
+| `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
+| `REDIS_URL` | Redis connection URL | No (default: `redis://localhost:6379`) |
+| `PORT` | Port to listen on | No (default: `4000`) |
+| `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
+| `PI_MODEL_ID` | Model in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) | Yes |
 
 Make sure your pi credentials include a valid auth token for the model's provider (`~/.pi/agent/auth.json`).
 
