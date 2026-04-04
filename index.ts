@@ -33,8 +33,6 @@ if (!projectDir) throw new Error("PI_PROJECT_DIR env variable is required");
 const projectName = projectDir.split("/").filter(Boolean).at(-1);
 console.log("[pi] Project dir:", projectDir);
 
-const authStorage = AuthStorage.create();
-const modelRegistry = ModelRegistry.create(authStorage);
 const PI_MODEL_ID = process.env.PI_MODEL_ID;
 if (!PI_MODEL_ID) throw new Error("PI_MODEL_ID env variable is required");
 const [modelProvider, modelId] = PI_MODEL_ID.split("/");
@@ -42,6 +40,9 @@ if (!modelProvider || !modelId)
 	throw new Error(
 		`PI_MODEL_ID must be in the form provider/model, got: ${PI_MODEL_ID}`,
 	);
+
+const authStorage = AuthStorage.create();
+const modelRegistry = ModelRegistry.create(authStorage);
 const model = modelRegistry.find(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_MODEL_ID} not found`);
 console.log("[pi] Model:", model.id);
