@@ -27,7 +27,7 @@ cp .env.example .env
 | `REDIS_URL` | Redis connection URL (e.g. `redis://localhost:6379`) |
 | `PORT` | Port to listen on (default: `4000`) |
 | `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) |
-| `PI_MODEL_ID` | Model to use in `provider/model` format (default: `github-copilot/claude-sonnet-4.6`) |
+| `PI_MODEL_ID` | Model to use in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) |
 
 Make sure the model is configured in your pi credentials (`~/.pi/agent/auth.json`).
 

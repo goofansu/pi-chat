@@ -35,8 +35,8 @@ console.log("[pi] Project dir:", projectDir);
 
 const authStorage = AuthStorage.create();
 const modelRegistry = ModelRegistry.create(authStorage);
-const PI_MODEL_ID =
-	process.env.PI_MODEL_ID ?? "github-copilot/claude-sonnet-4.6";
+const PI_MODEL_ID = process.env.PI_MODEL_ID;
+if (!PI_MODEL_ID) throw new Error("PI_MODEL_ID env variable is required");
 const [modelProvider, modelId] = PI_MODEL_ID.split("/");
 if (!modelProvider || !modelId)
 	throw new Error(
