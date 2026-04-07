@@ -10,12 +10,7 @@
 		"@chat-adapter/state-redis": "^4.23.0",
 		"@mariozechner/pi-coding-agent": "^0.65.0",
 		"@sinclair/typebox": "^0.34.49",
-		"chat": "^4.23.0"
-	},
-	"pnpm": {
-		"patchedDependencies": {
-			"@chat-adapter/slack@4.23.0": "patches/@chat-adapter__slack@4.23.0.patch"
-		}
+		"chat": "^4.24.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.10",
