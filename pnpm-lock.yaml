@@ -20,6 +20,9 @@ importers:
       '@sinclair/typebox':
         specifier: ^0.34.49
         version: 0.34.49
+      '@slack/web-api':
+        specifier: ^7.15.0
+        version: 7.15.0
       chat:
         specifier: ^4.24.0
         version: 4.24.0
