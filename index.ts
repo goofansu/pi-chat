@@ -267,6 +267,16 @@ bot.onNewMention(async (thread, message) => {
 });
 
 bot.onSubscribedMessage(async (thread, message) => {
+	// If the message @-mentions other users but not the bot, ignore it.
+	// (e.g. someone tagging a colleague to read the thread)
+	const rawText = (message.raw as { text?: string }).text ?? "";
+	const hasMentions = /<@[A-Z0-9]+>/.test(rawText);
+	if (hasMentions && !message.isMention) {
+		console.log(
+			`[pi] skipping message with user mentions (no bot mention) in thread=${thread.id}`,
+		);
+		return;
+	}
 	await askPi(thread, message);
 });
 
