@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import { createServer } from "node:http";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createRedisState } from "@chat-adapter/state-redis";
@@ -6,9 +7,11 @@ import {
 	createAgentSession,
 	createReadOnlyTools,
 	DefaultResourceLoader,
+	defineTool,
 	ModelRegistry,
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
+import { Type } from "@sinclair/typebox";
 import { WebClient } from "@slack/web-api";
 
 /** Matches @mariozechner/pi-ai ImageContent */
@@ -48,6 +51,79 @@ console.log("[pi] Model:", model.id);
 const tools = createReadOnlyTools(projectDir);
 console.log("[pi] Tools:", tools.map((t) => t.name).join(", "));
 
+const QMD_MAX_OUTPUT_BYTES = 1024 * 1024;
+const READ_ONLY_QMD_COMMANDS = new Set([
+	"query",
+	"search",
+	"vsearch",
+	"get",
+	"multi-get",
+	"status",
+	"ls",
+]);
+
+const qmdTool = defineTool({
+	name: "qmd",
+	label: "qmd",
+	description:
+		'Search the QMD indexed knowledge base. Only the qmd executable is allowed; pass QMD CLI arguments as an array without the qmd command name. Use args like ["query", "PowerSchool IP range", "-n", "5"] or ["get", "collection/path.md"]. Do not use "read"; use the read tool for project files.',
+	promptSnippet: "Run qmd to search indexed markdown and project knowledge",
+	promptGuidelines: [
+		"Use qmd query before grep/find for support questions that may be answered by indexed notes, docs, or knowledge-base collections.",
+		'Call qmd with args like ["query", "the user\'s question", "-n", "5"]; do not include the qmd command name in args.',
+		"Use qmd get to fetch indexed QMD documents. Use the read tool, not qmd, to read files from the project workspace.",
+	],
+	parameters: Type.Object(
+		{
+			args: Type.Array(Type.String(), {
+				description:
+					"Arguments to pass to qmd, excluding the qmd command itself.",
+			}),
+		},
+		{ additionalProperties: false },
+	),
+	async execute(_toolCallId, { args }, signal) {
+		if (!Array.isArray(args) || !args.every((arg) => typeof arg === "string")) {
+			throw new Error("qmd args must be an array of strings");
+		}
+		const command = args[0];
+		if (!command || !READ_ONLY_QMD_COMMANDS.has(command)) {
+			throw new Error(
+				`qmd command must be one of: ${[...READ_ONLY_QMD_COMMANDS].join(", ")}`,
+			);
+		}
+
+		return new Promise<{
+			content: Array<{ type: "text"; text: string }>;
+			details: { exitCode?: number | string | null } | undefined;
+		}>((resolve, reject) => {
+			execFile(
+				"qmd",
+				args,
+				{
+					cwd: projectDir,
+					maxBuffer: QMD_MAX_OUTPUT_BYTES,
+					signal,
+				},
+				(error, stdout, stderr) => {
+					const output = [stdout, stderr].filter(Boolean).join("\n").trim();
+					const text = output || "(no output)";
+					if (error) {
+						const exitCode =
+							"code" in error ? (error.code as number | string | null) : null;
+						reject(new Error(`${text}\n\nqmd exited with code ${exitCode}`));
+						return;
+					}
+					resolve({
+						content: [{ type: "text", text }],
+						details: undefined,
+					});
+				},
+			);
+		});
+	},
+});
+
 // ---------------------------------------------------------------------------
 // 2. Resource loader (shared across all sessions)
 // ---------------------------------------------------------------------------
@@ -56,7 +132,7 @@ const loader = new DefaultResourceLoader({
 	noExtensions: true,
 	noPromptTemplates: true,
 	skillsOverride: (current) => ({
-		skills: current.skills.filter((s) => s.name === "web-search"),
+		skills: current.skills.filter((s) => s.name === "qmd"),
 		diagnostics: current.diagnostics,
 	}),
 	systemPromptOverride: () =>
@@ -64,7 +140,7 @@ const loader = new DefaultResourceLoader({
 
 You answer questions about ${projectName}, including its code, architecture, features, and behaviour. For questions outside ${projectName}, reply briefly that they are outside the current project scope.
 
-Read the most relevant project files before answering, and base each answer on what the code shows. If the code does not provide a clear answer, say that clearly.
+Use qmd first for support questions that may be answered by indexed notes, docs, or knowledge-base collections. Then read relevant project files when the answer depends on code behaviour. If qmd and the code do not provide a clear answer, say that clearly.
 
 Response format:
 Question: Restate the question in your own words to confirm understanding.
@@ -75,8 +151,9 @@ Guidelines:
 - Keep the total response under 80 words.
 - Describe the end-user visible behaviour only — skip internal mechanics such as callbacks, services, sync flows, concerns, or how data moves between systems behind the scenes.
 - Avoid code blocks entirely. Use inline \`code\` sparingly, only for field names a support agent would recognise in the UI.
+- In markdown tables, use plain text cell values. Do not wrap table values in backticks or other markdown syntax.
 - Always follow the response format: question first, then answer.
-- Base answers only on files in the project directory.`,
+- Base answers only on qmd results and files in the project directory.`,
 });
 await loader.reload();
 
@@ -191,10 +268,14 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 	const { session } = await createAgentSession({
 		cwd: projectDir,
 		tools,
+		customTools: [qmdTool],
 		sessionManager,
 		model,
 		resourceLoader: loader,
 	});
+	session.setActiveToolsByName([
+		...new Set([...session.getActiveToolNames(), "qmd"]),
+	]);
 
 	// Store session file path on first message in a thread
 	if (!existingSessionPath && session.sessionFile) {
