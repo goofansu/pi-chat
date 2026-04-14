@@ -20,7 +20,11 @@ import { WebClient } from "@slack/web-api";
  * `--markdown` writes:
  *   ## <parent thread text>
  *
- *   <permalink>
+ *   [Open parent thread](<permalink>)
+ *
+ *   ### Answer
+ *
+ *   [Open answer in Slack](<message permalink>)
  *
  *   <matched message block text>
  */
@@ -78,6 +82,7 @@ interface MatchingThread {
 	channelName: string;
 	matchedMessages: {
 		blockText?: string;
+		permalink?: string;
 		reactions: string[];
 		text?: string;
 		ts: string;
@@ -319,17 +324,38 @@ function messageText(message: SlackMessage): string | undefined {
 	return extractBlockText(message.blocks) ?? message.text;
 }
 
+function slackLink(label: string, url?: string): string {
+	return url ? `[${label}](${url})` : label;
+}
+
 function formatMarkdown(threads: MatchingThread[]): string {
 	const lines: string[] = [];
 
-	for (const thread of threads) {
+	for (const [threadIndex, thread] of threads.entries()) {
+		if (threadIndex > 0) {
+			lines.push("---");
+			lines.push("");
+		}
+
 		const heading = (thread.question ?? "").replace(/<@[A-Z0-9]+>\s*/g, "");
 		lines.push(`## ${heading}`);
 		lines.push("");
-		lines.push(thread.permalink || thread.threadTs);
+		lines.push(slackLink("Open parent thread", thread.permalink));
 		lines.push("");
 
-		for (const message of thread.matchedMessages) {
+		const hasMultipleAnswers = thread.matchedMessages.length > 1;
+		for (const [index, message] of thread.matchedMessages.entries()) {
+			lines.push(hasMultipleAnswers ? `### Answer ${index + 1}` : "### Answer");
+			lines.push("");
+			lines.push(
+				slackLink(
+					hasMultipleAnswers
+						? `Open answer ${index + 1} in Slack`
+						: "Open answer in Slack",
+					message.permalink,
+				),
+			);
+			lines.push("");
 			lines.push(message.blockText ?? message.text ?? "");
 			lines.push("");
 		}
@@ -499,8 +525,14 @@ async function findMatchingThreads(
 				matches.set(threadTs, thread);
 			}
 
+			const messagePermalink = await slack.chat.getPermalink({
+				channel: channel.id,
+				message_ts: candidate.ts,
+			});
+
 			thread.matchedMessages.push({
 				blockText: messageText(candidate),
+				permalink: messagePermalink.permalink ?? "",
 				reactions: matchingReactionNames(candidate),
 				text: candidate.text,
 				ts: candidate.ts,
