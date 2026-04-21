@@ -1,12 +1,12 @@
 import { createServer } from "node:http";
-import { homedir } from "node:os";
-import { join } from "node:path";
+
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createRedisState } from "@chat-adapter/state-redis";
 import {
 	AuthStorage,
 	createAgentSession,
 	DefaultResourceLoader,
+	getAgentDir,
 	ModelRegistry,
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
@@ -32,6 +32,9 @@ if (!projectDir) throw new Error("PI_PROJECT_DIR env variable is required");
 const projectName = projectDir.split("/").filter(Boolean).at(-1);
 console.log("[pi] Project dir:", projectDir);
 
+const agentDir = getAgentDir();
+console.log("[pi] Agent dir:", agentDir);
+
 const PI_MODEL_ID = process.env.PI_MODEL_ID;
 if (!PI_MODEL_ID) throw new Error("PI_MODEL_ID env variable is required");
 const [modelProvider, modelId] = PI_MODEL_ID.split("/");
@@ -52,7 +55,6 @@ console.log("[pi] Tools:", tools.join(", "));
 // ---------------------------------------------------------------------------
 // 2. Resource loader (shared across all sessions)
 // ---------------------------------------------------------------------------
-const agentDir = join(homedir(), ".pi", "agent");
 const loader = new DefaultResourceLoader({
 	cwd: projectDir,
 	agentDir,
