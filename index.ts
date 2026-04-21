@@ -1,10 +1,11 @@
 import { createServer } from "node:http";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createRedisState } from "@chat-adapter/state-redis";
 import {
 	AuthStorage,
 	createAgentSession,
-	createReadOnlyTools,
 	DefaultResourceLoader,
 	ModelRegistry,
 	SessionManager,
@@ -45,20 +46,19 @@ const model = modelRegistry.find(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_MODEL_ID} not found`);
 console.log("[pi] Model:", model.id);
 
-const tools = createReadOnlyTools(projectDir);
-console.log("[pi] Tools:", tools.map((t) => t.name).join(", "));
+const tools: string[] = ["read", "grep", "find", "ls"];
+console.log("[pi] Tools:", tools.join(", "));
 
 // ---------------------------------------------------------------------------
 // 2. Resource loader (shared across all sessions)
 // ---------------------------------------------------------------------------
+const agentDir = join(homedir(), ".pi", "agent");
 const loader = new DefaultResourceLoader({
 	cwd: projectDir,
+	agentDir,
 	noExtensions: true,
+	noSkills: true,
 	noPromptTemplates: true,
-	skillsOverride: (current) => ({
-		skills: current.skills.filter((s) => s.name === "web-search"),
-		diagnostics: current.diagnostics,
-	}),
 	systemPromptOverride: () =>
 		`You are a support assistant for the ${projectName} codebase, helping support agents answer questions quickly and accurately.
 

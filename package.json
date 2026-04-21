@@ -7,16 +7,16 @@
 		"lint": "biome check --write *.ts **/*.ts"
 	},
 	"dependencies": {
-		"@chat-adapter/slack": "^4.23.0",
-		"@chat-adapter/state-redis": "^4.23.0",
-		"@mariozechner/pi-coding-agent": "^0.65.0",
+		"@chat-adapter/slack": "^4.26.0",
+		"@chat-adapter/state-redis": "^4.26.0",
+		"@mariozechner/pi-coding-agent": "^0.68.0",
 		"@sinclair/typebox": "^0.34.49",
-		"@slack/web-api": "^7.15.0",
-		"chat": "^4.24.0"
+		"@slack/web-api": "^7.15.1",
+		"chat": "^4.26.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.10",
-		"@types/node": "^25.5.2",
-		"typescript": "^6.0.2"
+		"@biomejs/biome": "^2.4.12",
+		"@types/node": "^25.6.0",
+		"typescript": "^6.0.3"
 	}
 }
