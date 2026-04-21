@@ -1,22 +1,22 @@
 {
-	"type": "module",
-	"scripts": {
-		"fetch-thumbs-up-threads": "node --env-file=.env --experimental-strip-types scripts/fetch-thumbs-up-threads.ts",
-		"start": "node --env-file=.env --experimental-strip-types index.ts",
-		"typecheck": "tsc --noEmit",
-		"lint": "biome check --write *.ts **/*.ts"
-	},
-	"dependencies": {
-		"@chat-adapter/slack": "^4.26.0",
-		"@chat-adapter/state-redis": "^4.26.0",
-		"@mariozechner/pi-coding-agent": "^0.68.0",
-		"@sinclair/typebox": "^0.34.49",
-		"@slack/web-api": "^7.15.1",
-		"chat": "^4.26.0"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.4.12",
-		"@types/node": "^25.6.0",
-		"typescript": "^6.0.3"
-	}
+  "type": "module",
+  "scripts": {
+    "fetch-thumbs-up-threads": "node --env-file=.env --experimental-strip-types scripts/fetch-thumbs-up-threads.ts",
+    "start": "node --env-file=.env --experimental-strip-types src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check --write ."
+  },
+  "dependencies": {
+    "@chat-adapter/slack": "^4.26.0",
+    "@chat-adapter/state-redis": "^4.26.0",
+    "@mariozechner/pi-coding-agent": "^0.68.0",
+    "@sinclair/typebox": "^0.34.49",
+    "@slack/web-api": "^7.15.1",
+    "chat": "^4.26.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.12",
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  }
 }
