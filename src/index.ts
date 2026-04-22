@@ -124,10 +124,23 @@ await bot.initialize();
 async function fetchImages(attachments: Attachment[]): Promise<ImageContent[]> {
   const images: ImageContent[] = [];
   for (const attachment of attachments) {
-    if (!attachment.mimeType?.startsWith("image/") || !attachment.fetchData)
-      continue;
+    if (!attachment.mimeType?.startsWith("image/")) continue;
     try {
-      const data = await attachment.fetchData();
+      let data: Buffer;
+      if (attachment.fetchData) {
+        data = await attachment.fetchData();
+      } else if (attachment.url) {
+        // fetchData is a closure stripped during queue serialization — fall back
+        // to fetching url_private directly with the bot token.
+        const response = await fetch(attachment.url, {
+          headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` },
+        });
+        if (!response.ok)
+          throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        data = Buffer.from(await response.arrayBuffer());
+      } else {
+        continue;
+      }
       images.push({
         type: "image",
         data: data.toString("base64"),
