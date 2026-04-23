@@ -10,8 +10,7 @@
   "dependencies": {
     "@chat-adapter/slack": "^4.26.0",
     "@chat-adapter/state-redis": "^4.26.0",
-    "@mariozechner/pi-coding-agent": "^0.68.0",
-    "@sinclair/typebox": "^0.34.49",
+    "@mariozechner/pi-coding-agent": "^0.69.0",
     "@slack/web-api": "^7.15.1",
     "chat": "^4.26.0"
   },
