@@ -5,6 +5,7 @@
     "start": "node --env-file=.env --experimental-strip-types src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check --write .",
+    "lint:check": "biome check .",
     "prepare": "husky"
   },
   "dependencies": {
