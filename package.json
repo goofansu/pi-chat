@@ -6,7 +6,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check --write .",
     "lint:check": "biome check .",
-    "prepare": "husky"
+    "prepare": "node .husky/install.mjs"
   },
   "dependencies": {
     "@chat-adapter/slack": "^4.26.0",
