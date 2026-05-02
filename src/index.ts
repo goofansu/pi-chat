@@ -11,6 +11,7 @@ import {
   SessionManager,
 } from "@mariozechner/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
+import webSearchExtension from "./extensions/web-search.ts";
 
 /** Matches @mariozechner/pi-ai ImageContent */
 interface ImageContent {
@@ -49,7 +50,7 @@ const model = modelRegistry.find(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_MODEL_ID} not found`);
 console.log("[pi] Model:", model.id);
 
-const tools: string[] = ["read", "grep", "find", "ls"];
+const tools: string[] = ["read", "grep", "find", "ls", "web-search"];
 console.log("[pi] Tools:", tools.join(", "));
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,7 @@ const loader = new DefaultResourceLoader({
   cwd: projectDir,
   agentDir,
   noExtensions: true,
+  extensionFactories: [webSearchExtension],
   noSkills: true,
   noPromptTemplates: true,
   systemPromptOverride: () =>
@@ -78,7 +80,8 @@ Guidelines:
 - Describe the end-user visible behaviour only — skip internal mechanics such as callbacks, services, sync flows, concerns, or how data moves between systems behind the scenes.
 - Avoid code blocks entirely. Use inline \`code\` sparingly, only for field names a support agent would recognise in the UI.
 - Always follow the response format: question first, then answer.
-- Base answers only on files in the project directory.`,
+- Base answers only on files in the project directory.
+- If the project files do not contain a clear answer, use the web-search tool to search within the scope of ${projectName} before concluding the answer is unknown.`,
 });
 await loader.reload();
 

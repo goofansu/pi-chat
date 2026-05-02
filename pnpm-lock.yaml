@@ -14,9 +14,15 @@ importers:
       '@chat-adapter/state-redis':
         specifier: ^4.26.0
         version: 4.26.0
+      '@mariozechner/pi-ai':
+        specifier: ^0.72.0
+        version: 0.72.0(ws@8.20.0)(zod@4.3.6)
       '@mariozechner/pi-coding-agent':
         specifier: ^0.69.0
         version: 0.69.0(ws@8.20.0)(zod@4.3.6)
+      '@mariozechner/pi-tui':
+        specifier: ^0.72.0
+        version: 0.72.0
       '@slack/web-api':
         specifier: ^7.15.1
         version: 7.15.1
@@ -41,6 +47,15 @@ packages:
 
   '@anthropic-ai/sdk@0.90.0':
     resolution: {integrity: sha512-MzZtPabJF1b0FTDl6Z6H5ljphPwACLGP13lu8MTiB8jXaW/YXlpOp+Po2cVou3MPM5+f5toyLnul9whKCy7fBg==}
+    hasBin: true
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@anthropic-ai/sdk@0.91.1':
+    resolution: {integrity: sha512-LAmu761tSN9r66ixvmciswUj/ZC+1Q4iAfpedTfSVLeswRwnY3n2Nb6Tsk+cLPP28aLOPWeMgIuTuCcMC6W/iw==}
     hasBin: true
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -356,6 +371,11 @@ packages:
     engines: {node: '>=20.0.0'}
     hasBin: true
 
+  '@mariozechner/pi-ai@0.72.0':
+    resolution: {integrity: sha512-7YJJ2t4OlMVETFA7YGXcuQLJZi600iu6P/OPp9mWb+1U/uTcpEcSOlm/gAzrU0uJsDBsz7fyJRgIIwbGo2p59g==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+
   '@mariozechner/pi-coding-agent@0.69.0':
     resolution: {integrity: sha512-/EFn43RO2TtMgZI4fMXNepIvbWm2GqhhaLIHBkrO7tRbRCzgvDYkw9sMLKhdf1Ihom2CjC3T/fzQRIPasRSIrQ==}
     engines: {node: '>=20.6.0'}
@@ -363,6 +383,10 @@ packages:
 
   '@mariozechner/pi-tui@0.69.0':
     resolution: {integrity: sha512-/82SOMzCA1srivwfcSO8r9XLdAgJNcgpWzNZY33IqqvGev8Q4iWY/hA1wAkLB0l7PKJJ4Dh57xS4IGHbyVM7lA==}
+    engines: {node: '>=20.0.0'}
+
+  '@mariozechner/pi-tui@0.72.0':
+    resolution: {integrity: sha512-uwCU/+qYrbHvmgQmIJL9DCtj2Q2EgvgBaz/8IVpKqhTT15JjBlY6M9Kems+2QtY/Q/eermTjswrUhxj1s3HE1w==}
     engines: {node: '>=20.0.0'}
 
   '@mistralai/mistralai@2.2.0':
@@ -1531,6 +1555,12 @@ snapshots:
     optionalDependencies:
       zod: 4.3.6
 
+  '@anthropic-ai/sdk@0.91.1(zod@4.3.6)':
+    dependencies:
+      json-schema-to-ts: 3.1.1
+    optionalDependencies:
+      zod: 4.3.6
+
   '@aws-crypto/crc32@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
@@ -2096,6 +2126,28 @@ snapshots:
       - ws
       - zod
 
+  '@mariozechner/pi-ai@0.72.0(ws@8.20.0)(zod@4.3.6)':
+    dependencies:
+      '@anthropic-ai/sdk': 0.91.1(zod@4.3.6)
+      '@aws-sdk/client-bedrock-runtime': 3.1033.0
+      '@google/genai': 1.50.1
+      '@mistralai/mistralai': 2.2.0
+      chalk: 5.6.2
+      openai: 6.26.0(ws@8.20.0)(zod@4.3.6)
+      partial-json: 0.1.7
+      proxy-agent: 6.5.0
+      typebox: 1.1.32
+      undici: 7.25.0
+      zod-to-json-schema: 3.25.2(zod@4.3.6)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - aws-crt
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
+
   '@mariozechner/pi-coding-agent@0.69.0(ws@8.20.0)(zod@4.3.6)':
     dependencies:
       '@mariozechner/jiti': 2.6.5
@@ -2131,6 +2183,16 @@ snapshots:
       - zod
 
   '@mariozechner/pi-tui@0.69.0':
+    dependencies:
+      '@types/mime-types': 2.1.4
+      chalk: 5.6.2
+      get-east-asian-width: 1.5.0
+      marked: 15.0.12
+      mime-types: 3.0.2
+    optionalDependencies:
+      koffi: 2.16.1
+
+  '@mariozechner/pi-tui@0.72.0':
     dependencies:
       '@types/mime-types': 2.1.4
       chalk: 5.6.2
