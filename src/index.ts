@@ -81,7 +81,8 @@ Guidelines:
 - Avoid code blocks entirely. Use inline \`code\` sparingly, only for field names a support agent would recognise in the UI.
 - Always follow the response format: question first, then answer.
 - Base answers only on files in the project directory.
-- If the project files do not contain a clear answer, use the web-search tool to search within the scope of ${projectName} before concluding the answer is unknown.`,
+- If the project files do not contain a clear answer, use the web-search tool to search within the scope of ${projectName} before concluding the answer is unknown.
+- When stating a fact, indicate its source: note whether it came from the project files or from a web search.`,
 });
 await loader.reload();
 
