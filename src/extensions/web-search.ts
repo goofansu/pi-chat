@@ -242,7 +242,7 @@ async function braveLlmContext(
   };
 }
 
-export default function webSearchExtension(pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "web-search",
     label: "Web Search",
