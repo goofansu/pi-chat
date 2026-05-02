@@ -20,14 +20,15 @@ Copy the example env file and fill in the values:
 cp .env.example .env
 ```
 
-| Variable | Description | Required |
-|---|---|---|
-| `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
-| `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
-| `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
-| `PI_MODEL_ID` | Model in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) | Yes |
-| `REDIS_URL` | Redis connection URL | Yes |
-| `PORT` | Port to listen on | No (default: `4000`) |
+| Category | Variable | Description | Required |
+|---|---|---|---|
+| Server | `PORT` | Port to listen on | No (default: `4000`) |
+| Pi | `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
+| Pi | `PI_MODEL_ID` | Model in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) | Yes |
+| Platform adapters | `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
+| Platform adapters | `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
+| State adapters | `REDIS_URL` | Redis connection URL | Yes |
+| Extensions | `BRAVE_SEARCH_API_KEY` | Brave Search API key used by the optional web-search extension | No |
 
 Make sure your pi credentials include a valid auth token for the model's provider (`~/.pi/agent/auth.json`).
 
