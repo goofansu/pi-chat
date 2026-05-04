@@ -251,8 +251,8 @@ export default function (pi: ExtensionAPI) {
     promptSnippet:
       "Search the web with Brave LLM Context and return extracted content plus sources",
     promptGuidelines: [
-      "Use web-search when the user asks for current information, recent events, external facts, product/docs lookups, or anything that benefits from web grounding.",
-      "When using web-search, rewrite the user's request into a concise effective search query before calling the tool, then cite the returned sources in your answer.",
+      "Use web-search for current information, recent events, external facts, or product/docs lookups. Do NOT use it when the user provides a specific URL to read or inspect — web-search is for queries, not fetching known URLs.",
+      "Rewrite the user's request into a concise search query before calling web-search, then cite the returned sources in your answer.",
     ],
     parameters: Type.Object({
       query: Type.String({
