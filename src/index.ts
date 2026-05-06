@@ -20,7 +20,14 @@ interface ImageContent {
   mimeType: string;
 }
 
-import { type Attachment, Chat, emoji, type Message, type Thread } from "chat";
+import {
+  type Attachment,
+  Chat,
+  type EmojiValue,
+  emoji,
+  type Message,
+  type Thread,
+} from "chat";
 
 // ---------------------------------------------------------------------------
 // 1. Config
@@ -99,6 +106,35 @@ const state = createRedisState({ url: REDIS_URL });
 await state.connect();
 
 const SESSION_KEY_PREFIX = "pi:session:";
+
+async function safeRemoveReaction(
+  adapter: {
+    removeReaction: (
+      threadId: string,
+      messageId: string,
+      emoji: EmojiValue,
+    ) => Promise<void>;
+  },
+  threadId: string,
+  messageId: string,
+  reactionEmoji: EmojiValue,
+): Promise<void> {
+  try {
+    await adapter.removeReaction(threadId, messageId, reactionEmoji);
+  } catch (err: unknown) {
+    const isNotFound =
+      err instanceof Error &&
+      (err.message.includes("message_not_found") ||
+        err.message.includes("thread_not_found"));
+    if (isNotFound) {
+      console.warn(
+        `[slack] message already deleted, skipping removeReaction (thread=${threadId}, message=${messageId})`,
+      );
+    } else {
+      throw err;
+    }
+  }
+}
 
 async function getSessionPath(threadId: string): Promise<string | null> {
   return state.get(`${SESSION_KEY_PREFIX}${threadId}`);
@@ -257,11 +293,11 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 
     console.log(`[slack] response: ${response.length} chars`);
     await thread.post(response ? { markdown: response } : "(no response)");
-    await thread.adapter.removeReaction(thread.id, message.id, emoji.eyes);
+    await safeRemoveReaction(thread.adapter, thread.id, message.id, emoji.eyes);
     await thread.adapter.addReaction(thread.id, message.id, emoji.check);
   } catch (err) {
     console.error("[pi] session error:", err);
-    await thread.adapter.removeReaction(thread.id, message.id, emoji.eyes);
+    await safeRemoveReaction(thread.adapter, thread.id, message.id, emoji.eyes);
     await thread.adapter.addReaction(thread.id, message.id, emoji.x);
     const msg = err instanceof Error ? err.message : String(err);
     await thread.post(`_Error: ${msg}_`);
