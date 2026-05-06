@@ -108,19 +108,12 @@ await state.connect();
 const SESSION_KEY_PREFIX = "pi:session:";
 
 async function safeRemoveReaction(
-  adapter: {
-    removeReaction: (
-      threadId: string,
-      messageId: string,
-      emoji: EmojiValue,
-    ) => Promise<void>;
-  },
-  threadId: string,
+  thread: Thread,
   messageId: string,
   reactionEmoji: EmojiValue,
 ): Promise<void> {
   try {
-    await adapter.removeReaction(threadId, messageId, reactionEmoji);
+    await thread.adapter.removeReaction(thread.id, messageId, reactionEmoji);
   } catch (err: unknown) {
     const isNotFound =
       err instanceof Error &&
@@ -128,7 +121,7 @@ async function safeRemoveReaction(
         err.message.includes("thread_not_found"));
     if (isNotFound) {
       console.warn(
-        `[slack] message already deleted, skipping removeReaction (thread=${threadId}, message=${messageId})`,
+        `[${thread.adapter.name}] message already deleted, skipping removeReaction (thread=${thread.id}, message=${messageId})`,
       );
     } else {
       throw err;
@@ -293,11 +286,11 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 
     console.log(`[slack] response: ${response.length} chars`);
     await thread.post(response ? { markdown: response } : "(no response)");
-    await safeRemoveReaction(thread.adapter, thread.id, message.id, emoji.eyes);
+    await safeRemoveReaction(thread, message.id, emoji.eyes);
     await thread.adapter.addReaction(thread.id, message.id, emoji.check);
   } catch (err) {
     console.error("[pi] session error:", err);
-    await safeRemoveReaction(thread.adapter, thread.id, message.id, emoji.eyes);
+    await safeRemoveReaction(thread, message.id, emoji.eyes);
     await thread.adapter.addReaction(thread.id, message.id, emoji.x);
     const msg = err instanceof Error ? err.message : String(err);
     await thread.post(`_Error: ${msg}_`);
