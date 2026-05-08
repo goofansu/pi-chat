@@ -11,9 +11,9 @@
   "dependencies": {
     "@chat-adapter/slack": "^4.26.0",
     "@chat-adapter/state-redis": "^4.26.0",
-    "@mariozechner/pi-ai": "^0.72.0",
-    "@mariozechner/pi-coding-agent": "^0.69.0",
-    "@mariozechner/pi-tui": "^0.72.0",
+    "@earendil-works/pi-ai": "^0.74.0",
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0",
     "@slack/web-api": "^7.15.1",
     "chat": "^4.26.0"
   },

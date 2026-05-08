@@ -9,11 +9,11 @@ import {
   getAgentDir,
   ModelRegistry,
   SessionManager,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
 import webSearchExtension from "./extensions/web-search.ts";
 
-/** Matches @mariozechner/pi-ai ImageContent */
+/** Matches pi-ai ImageContent */
 interface ImageContent {
   type: "image";
   data: string;
