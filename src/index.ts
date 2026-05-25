@@ -257,6 +257,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     tools,
     sessionManager,
     model,
+    thinkingLevel: "medium",
     resourceLoader: loader,
   });
 
