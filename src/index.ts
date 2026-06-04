@@ -20,6 +20,8 @@ interface ImageContent {
   mimeType: string;
 }
 
+type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
 import {
   type Attachment,
   Chat,
@@ -45,10 +47,12 @@ console.log("[pi] Agent dir:", agentDir);
 
 const PI_MODEL_ID = process.env.PI_MODEL_ID;
 if (!PI_MODEL_ID) throw new Error("PI_MODEL_ID env variable is required");
-const [modelProvider, modelId] = PI_MODEL_ID.split("/");
+const [modelRef, configuredThinkingLevel = "medium"] = PI_MODEL_ID.split(":");
+const thinkingLevel = (configuredThinkingLevel || "medium") as ThinkingLevel;
+const [modelProvider, modelId] = modelRef.split("/");
 if (!modelProvider || !modelId)
   throw new Error(
-    `PI_MODEL_ID must be in the form provider/model, got: ${PI_MODEL_ID}`,
+    `PI_MODEL_ID must be in the form provider/model[:thinking], got: ${PI_MODEL_ID}`,
   );
 
 const authStorage = AuthStorage.create();
@@ -56,6 +60,7 @@ const modelRegistry = ModelRegistry.create(authStorage);
 const model = modelRegistry.find(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_MODEL_ID} not found`);
 console.log("[pi] Model:", model.id);
+console.log("[pi] Thinking level:", thinkingLevel);
 
 const tools: string[] = ["read", "grep", "find", "ls", "web-search"];
 console.log("[pi] Tools:", tools.join(", "));
@@ -257,7 +262,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     tools,
     sessionManager,
     model,
-    thinkingLevel: "medium",
+    thinkingLevel,
     resourceLoader: loader,
   });
 

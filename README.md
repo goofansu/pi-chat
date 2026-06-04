@@ -24,7 +24,7 @@ cp .env.example .env
 |---|---|---|---|
 | Server | `PORT` | Port to listen on | No (default: `4000`) |
 | Pi | `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
-| Pi | `PI_MODEL_ID` | Model in `provider/model` format (e.g. `github-copilot/claude-sonnet-4.6`) | Yes |
+| Pi | `PI_MODEL_ID` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high`; thinking defaults to `medium`) | Yes |
 | Platform adapters | `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
 | State adapters | `REDIS_URL` | Redis connection URL | Yes |
