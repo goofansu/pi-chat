@@ -45,20 +45,20 @@ console.log("[pi] Project dir:", projectDir);
 const agentDir = getAgentDir();
 console.log("[pi] Agent dir:", agentDir);
 
-const PI_MODEL_ID = process.env.PI_MODEL_ID;
-if (!PI_MODEL_ID) throw new Error("PI_MODEL_ID env variable is required");
-const [modelRef, configuredThinkingLevel = "medium"] = PI_MODEL_ID.split(":");
+const PI_MODEL = process.env.PI_MODEL;
+if (!PI_MODEL) throw new Error("PI_MODEL env variable is required");
+const [modelRef, configuredThinkingLevel = "medium"] = PI_MODEL.split(":");
 const thinkingLevel = (configuredThinkingLevel || "medium") as ThinkingLevel;
 const [modelProvider, modelId] = modelRef.split("/");
 if (!modelProvider || !modelId)
   throw new Error(
-    `PI_MODEL_ID must be in the form provider/model[:thinking], got: ${PI_MODEL_ID}`,
+    `PI_MODEL must be in the form provider/model[:thinking], got: ${PI_MODEL}`,
   );
 
 const authStorage = AuthStorage.create();
 const modelRegistry = ModelRegistry.create(authStorage);
 const model = modelRegistry.find(modelProvider, modelId);
-if (!model) throw new Error(`Model ${PI_MODEL_ID} not found`);
+if (!model) throw new Error(`Model ${PI_MODEL} not found`);
 console.log("[pi] Model:", model.id);
 console.log("[pi] Thinking level:", thinkingLevel);
 
