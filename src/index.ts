@@ -11,6 +11,7 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
+import bashGitReadonlyExtension from "./extensions/bash-git-readonly.ts";
 import webSearchExtension from "./extensions/web-search.ts";
 
 /** Matches pi-ai ImageContent */
@@ -62,7 +63,14 @@ if (!model) throw new Error(`Model ${PI_MODEL} not found`);
 console.log("[pi] Model:", model.id);
 console.log("[pi] Thinking level:", thinkingLevel);
 
-const tools: string[] = ["read", "grep", "find", "ls", "web-search"];
+const tools: string[] = [
+  "read",
+  "grep",
+  "find",
+  "ls",
+  "git-readonly",
+  "web-search",
+];
 console.log("[pi] Tools:", tools.join(", "));
 
 // ---------------------------------------------------------------------------
@@ -72,7 +80,7 @@ const loader = new DefaultResourceLoader({
   cwd: projectDir,
   agentDir,
   noExtensions: true,
-  extensionFactories: [webSearchExtension],
+  extensionFactories: [bashGitReadonlyExtension, webSearchExtension],
   noSkills: true,
   noPromptTemplates: true,
   systemPromptOverride: () =>

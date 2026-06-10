@@ -62,4 +62,4 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 
 ## Security
 
-The bot has access to read-only tools scoped to `PI_PROJECT_DIR`: **`read`, `grep`, `find`, `ls`**. These tools cannot write or execute anything in the project.
+The bot has access to read-only tools scoped to `PI_PROJECT_DIR`: **`read`, `grep`, `find`, `ls`, `git-readonly`, `web-search`**.
