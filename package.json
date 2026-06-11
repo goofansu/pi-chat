@@ -9,17 +9,17 @@
     "prepare": "node .husky/install.mjs"
   },
   "dependencies": {
-    "@chat-adapter/slack": "^4.26.0",
-    "@chat-adapter/state-redis": "^4.26.0",
-    "@earendil-works/pi-ai": "^0.74.0",
-    "@earendil-works/pi-coding-agent": "^0.74.0",
-    "@earendil-works/pi-tui": "^0.74.0",
-    "@slack/web-api": "^7.15.1",
-    "chat": "^4.26.0"
+    "@chat-adapter/slack": "^4.30.0",
+    "@chat-adapter/state-redis": "^4.30.0",
+    "@earendil-works/pi-ai": "^0.78.1",
+    "@earendil-works/pi-coding-agent": "^0.78.1",
+    "@earendil-works/pi-tui": "^0.78.1",
+    "@slack/web-api": "^7.16.0",
+    "chat": "^4.30.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.12",
-    "@types/node": "^25.6.0",
+    "@biomejs/biome": "^2.4.16",
+    "@types/node": "^25.9.2",
     "husky": "^9.1.7",
     "typescript": "^6.0.3"
   }
