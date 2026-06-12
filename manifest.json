@@ -1,22 +1,23 @@
 {
   "display_information": {
-    "name": "Pi chat",
-    "description": "Talk with pi coding agent"
+    "name": "Pi Assistant",
+    "description": "Chat with Pi about a project",
+    "background_color": "#2c2d30"
   },
   "features": {
     "bot_user": {
-      "display_name": "pi",
+      "display_name": "Pi",
       "always_online": true
     }
   },
   "oauth_config": {
     "scopes": {
       "bot": [
-        "files:read",
         "app_mentions:read",
         "channels:history",
         "channels:read",
         "chat:write",
+        "files:read",
         "groups:history",
         "groups:read",
         "im:history",
@@ -51,6 +52,7 @@
     },
     "org_deploy_enabled": false,
     "socket_mode_enabled": false,
-    "token_rotation_enabled": false
+    "token_rotation_enabled": false,
+    "is_mcp_enabled": false
   }
 }
