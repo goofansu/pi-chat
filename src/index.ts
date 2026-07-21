@@ -13,6 +13,7 @@ import {
 import { WebClient } from "@slack/web-api";
 import bashGitReadonlyExtension from "./extensions/bash-git-readonly.ts";
 import webSearchExtension from "./extensions/web-search.ts";
+import { sessionErrorReply } from "./session-error.ts";
 
 /** Matches pi-ai ImageContent */
 interface ImageContent {
@@ -322,8 +323,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     console.error("[pi] session error:", err);
     await safeRemoveReaction(thread, message.id, emoji.eyes);
     await thread.adapter.addReaction(thread.id, message.id, emoji.x);
-    const msg = err instanceof Error ? err.message : String(err);
-    await thread.post(`_Error: ${msg}_`);
+    await thread.post(sessionErrorReply(err));
   }
 }
 
