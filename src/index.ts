@@ -13,7 +13,12 @@ import {
 import { WebClient } from "@slack/web-api";
 import bashGitReadonlyExtension from "./extensions/bash-git-readonly.ts";
 import webSearchExtension from "./extensions/web-search.ts";
-import { sessionErrorReply } from "./session-error.ts";
+import {
+  handleSessionPrompt,
+  recoverSessionError,
+  sessionErrorReply,
+  sessionPathKey,
+} from "./session-error.ts";
 
 /** Matches pi-ai ImageContent */
 interface ImageContent {
@@ -135,8 +140,6 @@ if (!REDIS_URL) throw new Error("REDIS_URL env variable is required");
 const state = createRedisState({ url: REDIS_URL });
 await state.connect();
 
-const SESSION_KEY_PREFIX = "pi:session:";
-
 async function safeRemoveReaction(
   thread: Thread,
   messageId: string,
@@ -160,14 +163,14 @@ async function safeRemoveReaction(
 }
 
 async function getSessionPath(threadId: string): Promise<string | null> {
-  return state.get(`${SESSION_KEY_PREFIX}${threadId}`);
+  return state.get(sessionPathKey(threadId));
 }
 
 async function setSessionPath(
   threadId: string,
   sessionFile: string,
 ): Promise<void> {
-  await state.set(`${SESSION_KEY_PREFIX}${threadId}`, sessionFile);
+  await state.set(sessionPathKey(threadId), sessionFile);
 }
 
 const bot = new Chat({
@@ -296,35 +299,49 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     }
   });
 
-  try {
-    await session.prompt(prompt, images.length > 0 ? { images } : undefined);
+  await handleSessionPrompt({
+    prompt: () =>
+      session.prompt(prompt, images.length > 0 ? { images } : undefined),
+    recoverPromptError: async (err) => {
+      console.error("[pi] session error:", err);
+      await recoverSessionError(err, {
+        invalidateSession: () => state.delete(sessionPathKey(thread.id)),
+        removeProgressReaction: () =>
+          safeRemoveReaction(thread, message.id, emoji.eyes),
+        addFailureReaction: () =>
+          thread.adapter.addReaction(thread.id, message.id, emoji.x),
+        postReply: (reply) => thread.post(reply).then(() => undefined),
+      });
+    },
+    continueAfterPrompt: async () => {
+      const last = session.messages.findLast((m) => m.role === "assistant");
+      if (last && Array.isArray(last.content)) {
+        response = last.content
+          .filter((c) => c.type === "text")
+          .map((c) => c.text)
+          .join("");
+      } else if (last && typeof last.content === "string") {
+        response = last.content;
+      }
 
-    const last = session.messages.findLast((m) => m.role === "assistant");
-    if (last && Array.isArray(last.content)) {
-      response = last.content
-        .filter((c) => c.type === "text")
-        .map((c) => c.text)
-        .join("");
-    } else if (last && typeof last.content === "string") {
-      response = last.content;
-    }
+      // Strip stray horizontal rules the model sometimes emits
+      response = response
+        .replace(/^---+\s*$/gm, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
 
-    // Strip stray horizontal rules the model sometimes emits
-    response = response
-      .replace(/^---+\s*$/gm, "")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    console.log(`[slack] response: ${response.length} chars`);
-    await thread.post(response ? { markdown: response } : "(no response)");
-    await safeRemoveReaction(thread, message.id, emoji.eyes);
-    await thread.adapter.addReaction(thread.id, message.id, emoji.check);
-  } catch (err) {
-    console.error("[pi] session error:", err);
-    await safeRemoveReaction(thread, message.id, emoji.eyes);
-    await thread.adapter.addReaction(thread.id, message.id, emoji.x);
-    await thread.post(sessionErrorReply(err));
-  }
+      console.log(`[slack] response: ${response.length} chars`);
+      await thread.post(response ? { markdown: response } : "(no response)");
+      await safeRemoveReaction(thread, message.id, emoji.eyes);
+      await thread.adapter.addReaction(thread.id, message.id, emoji.check);
+    },
+    reportPostPromptError: async (err) => {
+      console.error("[pi] post-prompt error:", err);
+      await safeRemoveReaction(thread, message.id, emoji.eyes);
+      await thread.adapter.addReaction(thread.id, message.id, emoji.x);
+      await thread.post(sessionErrorReply(err));
+    },
+  });
 }
 
 bot.onReaction(["thumbs_up"], async (event) => {
