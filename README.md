@@ -6,6 +6,7 @@ Mention the bot in any channel to start a thread. Follow-up messages in that thr
 
 ## Requirements
 
+- Node.js >=22.19.0
 - A Redis server (used by the Chat SDK for thread subscriptions and conversation history)
 
 ## Install

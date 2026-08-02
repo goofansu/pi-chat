@@ -27,6 +27,52 @@ test("rejects a whitespace-only project provider API key", () => {
   );
 });
 
+test("provider services keep every filesystem and network isolation guard", async () => {
+  const source = await readFile(
+    new URL("../src/provider-config.ts", import.meta.url),
+    "utf8",
+  );
+  const runtimeOptions = source.match(
+    /ModelRuntime\.create\s*\(\s*\{([\s\S]*?)\}\s*\)/,
+  )?.[1];
+  const runtimeApiKeyOptions = source.match(
+    /setRuntimeApiKey\s*\(\s*provider\s*,\s*apiKey\s*,\s*\{([\s\S]*?)\}\s*\)/,
+  )?.[1];
+
+  assert.match(
+    source,
+    /const\s+credentialStore\s*=\s*new\s+InMemoryCredentialStore\s*\(\s*\)/,
+    "credentials must use InMemoryCredentialStore",
+  );
+  assert.ok(runtimeOptions, "expected ModelRuntime.create options");
+  assert.match(
+    runtimeOptions,
+    /\bcredentials\s*:\s*credentialStore\b/,
+    "ModelRuntime must receive the in-memory credential store",
+  );
+  assert.match(
+    runtimeOptions,
+    /\bmodelsPath\s*:\s*null\b/,
+    "ModelRuntime must disable the user-scoped models path",
+  );
+  assert.match(
+    runtimeOptions,
+    /\bmodelsStore\s*:\s*new\s+InMemoryModelsStore\s*\(\s*\)/,
+    "models must use InMemoryModelsStore",
+  );
+  assert.match(
+    runtimeOptions,
+    /\ballowModelNetwork\s*:\s*false\b/,
+    "model loading must not use the network",
+  );
+  assert.ok(runtimeApiKeyOptions, "expected setRuntimeApiKey options");
+  assert.match(
+    runtimeApiKeyOptions,
+    /\ballowNetwork\s*:\s*false\b/,
+    "API-key resolution must not use the network",
+  );
+});
+
 test("binds the project API key to the selected provider in memory", async () => {
   const { credentialStore, modelRuntime } = await createProjectProviderServices(
     "anthropic",
