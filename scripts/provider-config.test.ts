@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
@@ -48,4 +49,23 @@ test("does not bind the project key to another provider", async () => {
     (await modelRuntime.getAuth("openai"))?.auth.apiKey,
     "project-secret",
   );
+});
+
+test("the application injects project provider services into Pi sessions", async () => {
+  const source = await readFile(
+    new URL("../src/index.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /createProjectProviderServices\(/);
+  assert.match(source, /process\.env\.PI_PROVIDER_API_KEY/);
+  assert.match(
+    source,
+    /await createProjectProviderServices\([\s\S]*?modelProvider,[\s\S]*?process\.env\.PI_PROVIDER_API_KEY,[\s\S]*?\)/,
+  );
+  assert.match(
+    source,
+    /createAgentSession\(\{[\s\S]*?modelRuntime,[\s\S]*?\}\)/,
+  );
+  assert.doesNotMatch(source, /ModelRuntime\.create\(/);
 });

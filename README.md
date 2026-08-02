@@ -25,12 +25,13 @@ cp .env.example .env
 | Server | `PORT` | Port to listen on | No (default: `4000`) |
 | Pi | `PI_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
 | Pi | `PI_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high`; thinking defaults to `medium`) | Yes |
+| Pi | `PI_PROVIDER_API_KEY` | API key for the provider selected by `PI_MODEL`; held in memory and never persisted | Yes |
 | Platform adapters | `SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
 | State adapters | `REDIS_URL` | Redis connection URL | Yes |
 | Extensions | `BRAVE_SEARCH_API_KEY` | Brave Search API key used by the optional web-search extension | No |
 
-Make sure your pi credentials include a valid auth token for the model's provider (`~/.pi/agent/auth.json`).
+`PI_MODEL` must identify a built-in Pi model. Provider authentication and the model registry are isolated from user-scoped Pi configuration: the server uses only `PI_PROVIDER_API_KEY` and does not read `~/.pi/agent/auth.json` or `~/.pi/agent/models.json`.
 
 ## Usage
 

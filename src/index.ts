@@ -6,12 +6,12 @@ import {
   createAgentSession,
   DefaultResourceLoader,
   getAgentDir,
-  ModelRuntime,
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
 import bashGitReadonlyExtension from "./extensions/bash-git-readonly.ts";
 import webSearchExtension from "./extensions/web-search.ts";
+import { createProjectProviderServices } from "./provider-config.ts";
 import {
   handleSessionPrompt,
   recoverSessionError,
@@ -61,7 +61,10 @@ if (!modelProvider || !modelId)
     `PI_MODEL must be in the form provider/model[:thinking], got: ${PI_MODEL}`,
   );
 
-const modelRuntime = await ModelRuntime.create();
+const { modelRuntime } = await createProjectProviderServices(
+  modelProvider,
+  process.env.PI_PROVIDER_API_KEY,
+);
 const model = modelRuntime.getModel(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_MODEL} not found`);
 console.log("[pi] Model:", model.id);
