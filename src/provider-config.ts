@@ -11,7 +11,7 @@ export function createProjectProviderServices(
   credentialStore: InMemoryCredentialStore;
   modelRuntime: ModelRuntime;
 }> {
-  if (!apiKey) {
+  if (!apiKey?.trim()) {
     throw new Error("PI_PROVIDER_API_KEY env variable is required");
   }
 

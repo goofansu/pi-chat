@@ -20,6 +20,13 @@ test("rejects an empty project provider API key", () => {
   );
 });
 
+test("rejects a whitespace-only project provider API key", () => {
+  assert.throws(
+    () => createProjectProviderServices("anthropic", " \t\n"),
+    /PI_PROVIDER_API_KEY env variable is required/,
+  );
+});
+
 test("binds the project API key to the selected provider in memory", async () => {
   const { credentialStore, modelRuntime } = await createProjectProviderServices(
     "anthropic",
@@ -56,6 +63,10 @@ test("the application injects project provider services into Pi sessions", async
     new URL("../src/index.ts", import.meta.url),
     "utf8",
   );
+  const sessionCallStarts = [...source.matchAll(/\bcreateAgentSession\s*\(/g)];
+  const sessionCalls = [
+    ...source.matchAll(/\bcreateAgentSession\s*\(\s*\{[\s\S]*?\n\s*\}\s*\)/g),
+  ];
 
   assert.match(source, /createProjectProviderServices\(/);
   assert.match(source, /process\.env\.PI_PROVIDER_API_KEY/);
@@ -63,9 +74,18 @@ test("the application injects project provider services into Pi sessions", async
     source,
     /await createProjectProviderServices\([\s\S]*?modelProvider,[\s\S]*?process\.env\.PI_PROVIDER_API_KEY,[\s\S]*?\)/,
   );
-  assert.match(
-    source,
-    /createAgentSession\(\{[\s\S]*?modelRuntime,[\s\S]*?\}\)/,
+  assert.ok(sessionCallStarts.length > 0, "expected a createAgentSession call");
+  assert.equal(
+    sessionCalls.length,
+    sessionCallStarts.length,
+    "every createAgentSession call must receive an options object",
   );
+  for (const call of sessionCalls) {
+    assert.match(
+      call[0],
+      /(?:^|\n)\s*modelRuntime\s*(?:,|:)/m,
+      "every createAgentSession call must include modelRuntime",
+    );
+  }
   assert.doesNotMatch(source, /ModelRuntime\.create\(/);
 });
