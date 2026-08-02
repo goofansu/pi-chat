@@ -3,11 +3,10 @@ import { createServer } from "node:http";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createRedisState } from "@chat-adapter/state-redis";
 import {
-  AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
   getAgentDir,
-  ModelRegistry,
+  ModelRuntime,
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
@@ -62,9 +61,8 @@ if (!modelProvider || !modelId)
     `PI_MODEL must be in the form provider/model[:thinking], got: ${PI_MODEL}`,
   );
 
-const authStorage = AuthStorage.create();
-const modelRegistry = ModelRegistry.create(authStorage);
-const model = modelRegistry.find(modelProvider, modelId);
+const modelRuntime = await ModelRuntime.create();
+const model = modelRuntime.getModel(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_MODEL} not found`);
 console.log("[pi] Model:", model.id);
 console.log("[pi] Thinking level:", thinkingLevel);
@@ -274,6 +272,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     tools,
     sessionManager,
     model,
+    modelRuntime,
     thinkingLevel,
     resourceLoader: loader,
   });
