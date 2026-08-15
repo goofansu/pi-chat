@@ -12,7 +12,7 @@ export function createProjectProviderServices(
   modelRuntime: ModelRuntime;
 }> {
   if (!apiKey?.trim()) {
-    throw new Error("PI_PROVIDER_API_KEY env variable is required");
+    throw new Error("PI_CHAT_PROVIDER_API_KEY env variable is required");
   }
 
   return createInMemoryProviderServices(provider, apiKey);

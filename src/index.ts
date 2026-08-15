@@ -9,8 +9,10 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
-import bashGitReadonlyExtension from "./extensions/bash-git-readonly.ts";
-import webSearchExtension from "./extensions/web-search.ts";
+import claudeExtension, {
+  findClaudeBinary,
+  projectCwd,
+} from "./extensions/claude.ts";
 import { createProjectProviderServices } from "./provider-config.ts";
 import {
   handleSessionPrompt,
@@ -40,45 +42,49 @@ import {
 // ---------------------------------------------------------------------------
 // 1. Config
 // ---------------------------------------------------------------------------
-const projectDir = (process.env.PI_PROJECT_DIR ?? "").replace(
-  /^~/,
-  process.env.HOME ?? "",
-);
-if (!projectDir) throw new Error("PI_PROJECT_DIR env variable is required");
+// Resolved by the claude extension rather than here, so pi's cwd and the
+// directory the delegated session is confined to cannot disagree — two
+// expansions of one variable is one too many.
+const projectDir = projectCwd();
 const projectName = projectDir.split("/").filter(Boolean).at(-1);
 console.log("[pi] Project dir:", projectDir);
 
 const agentDir = getAgentDir();
 console.log("[pi] Agent dir:", agentDir);
 
-const PI_MODEL = process.env.PI_MODEL;
-if (!PI_MODEL) throw new Error("PI_MODEL env variable is required");
-const [modelRef, configuredThinkingLevel = "medium"] = PI_MODEL.split(":");
+const PI_CHAT_MODEL = process.env.PI_CHAT_MODEL;
+if (!PI_CHAT_MODEL) throw new Error("PI_CHAT_MODEL env variable is required");
+const [modelRef, configuredThinkingLevel = "medium"] = PI_CHAT_MODEL.split(":");
 const thinkingLevel = (configuredThinkingLevel || "medium") as ThinkingLevel;
 const [modelProvider, modelId] = modelRef.split("/");
 if (!modelProvider || !modelId)
   throw new Error(
-    `PI_MODEL must be in the form provider/model[:thinking], got: ${PI_MODEL}`,
+    `PI_CHAT_MODEL must be in the form provider/model[:thinking], got: ${PI_CHAT_MODEL}`,
   );
 
 const { modelRuntime } = await createProjectProviderServices(
   modelProvider,
-  process.env.PI_PROVIDER_API_KEY,
+  process.env.PI_CHAT_PROVIDER_API_KEY,
 );
 const model = modelRuntime.getModel(modelProvider, modelId);
-if (!model) throw new Error(`Model ${PI_MODEL} not found`);
+if (!model) throw new Error(`Model ${PI_CHAT_MODEL} not found`);
 console.log("[pi] Model:", model.id);
 console.log("[pi] Thinking level:", thinkingLevel);
 
-const tools: string[] = [
-  "read",
-  "grep",
-  "find",
-  "ls",
-  "git-readonly",
-  "web-search",
-];
+// pi identifies intent and delegates investigation to claude. The built-in read
+// tools are kept only for trivial lookups and for checking what claude reports —
+// see the system prompt below.
+const tools: string[] = ["read", "grep", "find", "ls", "claude"];
 console.log("[pi] Tools:", tools.join(", "));
+
+// The claude tool drives the Claude Code CLI, which ships in a per-platform
+// optional dependency and authenticates from its own credential store. Surface a
+// broken install at boot rather than on the first delegation.
+if (tools.includes("claude") && !findClaudeBinary()) {
+  console.warn(
+    "[pi] Claude Code CLI not found — the claude tool will fail. Reinstall dependencies without --omit=optional.",
+  );
+}
 
 // ---------------------------------------------------------------------------
 // 2. Resource loader (shared across all sessions)
@@ -87,7 +93,7 @@ const loader = new DefaultResourceLoader({
   cwd: projectDir,
   agentDir,
   noExtensions: true,
-  extensionFactories: [bashGitReadonlyExtension, webSearchExtension],
+  extensionFactories: [claudeExtension],
   noSkills: true,
   noPromptTemplates: true,
   systemPromptOverride: () =>
@@ -95,21 +101,17 @@ const loader = new DefaultResourceLoader({
 
 You answer questions about ${projectName}, including its code, architecture, features, and behaviour. For questions outside ${projectName}, reply briefly that they are outside the current project scope.
 
-Read the most relevant project files before answering, and base each answer on what the code shows. If the code does not provide a clear answer, say that clearly.
+Your job is to work out what the user actually needs to know, delegate the investigation to the claude tool, and turn what comes back into a support-agent answer. You do not investigate the codebase yourself.
 
-Investigation discipline (do this before answering — it is internal work, not part of the reply):
-- Finding one matching snippet is a lead, not a conclusion. Never answer a behaviour question from a single file.
-- For any "what happens when X is in state Y" or "will Z happen" question, you MUST inspect both sides of every relevant state transition before concluding:
-  - the path that enters the state (e.g. pause, disable, archive, cancel, soft-delete)
-  - the path that exits the state (e.g. resume, re-enable, reactivate, restore, retry)
-  - the path that triggers the behaviour itself (event handlers, jobs, schedulers)
-  Skipping the exit/transition path is the most common cause of wrong answers — do not skip it.
-- Before giving any negative answer ("no, this does not happen", "there is no retroactive…", "nothing replays…"), you MUST first open the controller/service/job that performs the relevant state transition or trigger and confirm the absence directly. Do not infer absence from a guard found in an unrelated file.
-- Follow the call graph outward from any key function: search for its callers and callees, and look at sibling files in the same directory, before assuming you understand its role.
-- Search broadly across layers: controllers, services, workers/jobs, schedulers, event handlers, and entry points — not just the layer where the first match landed.
-- Before finalising, list (to yourself) the code paths you actually opened and the plausible paths you did not. If a relevant transition or entry point is unverified, either go check it or qualify the answer.
-- Default to hedged language ("based on the code paths I traced…") unless every relevant path has been confirmed. A confidently wrong answer is worse than a hedged correct one.
-- Read enough of each file to actually see the behaviour. Avoid artificially tiny \`limit\` values (e.g. 30–80 lines) on files you believe are relevant — they almost always cut off adjacent guards, private helpers, or modifiers (timeouts, expirations, outdated/stale checks, fallbacks) that change the answer. Default to reading the whole file for anything up to ~500 lines. For larger files, use grep first to locate every relevant symbol, then read a generous window around each hit (hundreds of lines, not tens) and explicitly check for nearby private methods that the visible code calls into. If you find yourself re-opening the same file with different offsets, just read it in full.
+Delegation discipline (internal work, not part of the reply):
+- Always delegate to claude before answering anything about behaviour, features, or how the product works. Do this even when you think you already know the answer, and on follow-up questions in a thread.
+- Identify the real question first. Support agents often relay a customer's words, which may name the wrong feature or assume a mechanism that does not exist. Delegate the question the user needs answered, not the words they typed.
+- claude starts fresh every time. It cannot see this thread, your earlier questions, or its own previous answers. Each prompt must stand entirely alone.
+- Write the delegation as a task, not a forwarded message. State the specific question, the behaviour that matters, and what a complete answer must cover — for example both sides of a state transition, what happens on retry, or which limits and expirations apply.
+- Carry the thread forward yourself. If a feature name, customer scenario, or conclusion from an earlier delegation matters, restate it inside the new prompt; claude will not have it otherwise.
+- If claude's answer is incomplete, hedged, or leaves a path unverified, delegate again with a narrower and more specific task. Do not fill the gap with a guess.
+- claude can only read files in the project directory. It cannot see git history, run commands, or search the web. If the answer depends on any of those, say what could not be checked rather than answering from current code as though it were the whole story.
+- Use read, grep, find, and ls only to confirm a specific detail claude reported, or for a trivial lookup that needs no investigation. Never use them to run your own investigation in place of delegating.
 
 Response format:
 Question: Restate the question in your own words to confirm understanding.
@@ -122,23 +124,36 @@ Guidelines:
 - Avoid code blocks entirely. Use inline \`code\` sparingly, only for field names a support agent would recognise in the UI.
 - Always follow the response format: question first, then answer. This applies to every reply in a thread, including follow-ups.
 - Stay in support-agent mode for every reply, including follow-ups. If the user asks for code locations, file paths, class/method names, or implementation details ("where is the logic", "show me the code", "which file"), do not switch into developer-explanation mode. Restate the behaviour in support-agent terms and, at most, name the user-facing setting or business rule involved (e.g. "the 30-day outdated rule"). Internal file paths, class names, private methods, and constants must never appear in a reply.
-- Base answers only on files in the project directory.
-- If the project files do not contain a clear answer, use the web-search tool to search within the scope of ${projectName} before concluding the answer is unknown.
-- When stating a fact, indicate its source: note whether it came from the project files or from a web search.
+- Base answers only on what claude reports from the project files, plus any detail you verified yourself. Never answer from general knowledge about how software like this usually works.
+- Restate claude's findings in support-agent terms. Its raw output is written for a developer: never pass through its file paths, class names, or internal mechanics.
+- Carry claude's own hedging into your answer. If it says a path was not verified, the customer-facing answer must be qualified too — do not present a hedged finding as settled.
+- If claude cannot find a clear answer, say so plainly rather than speculating.
 - If a faithful answer would exceed 300 words, prefer trimming background, hedging, or restated context over dropping a behaviour-changing caveat (e.g. limits, expirations, exclusions). Caveats that change what the customer sees must stay; prose that does not must go.`,
 });
 await loader.reload();
 
 // ---------------------------------------------------------------------------
 // 3. Create the bot
-//    Reads SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET from env automatically.
 // ---------------------------------------------------------------------------
 
-// Redis state — shared between Chat SDK and pi session persistence
-const REDIS_URL = process.env.REDIS_URL;
-if (!REDIS_URL) throw new Error("REDIS_URL env variable is required");
+// The adapter would read SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET from the
+// environment itself, but this project's variables all carry the PI_CHAT_
+// prefix — that is what keeps them out of the delegated Claude session — so
+// they are passed in explicitly.
+const PI_CHAT_SLACK_BOT_TOKEN = process.env.PI_CHAT_SLACK_BOT_TOKEN;
+if (!PI_CHAT_SLACK_BOT_TOKEN)
+  throw new Error("PI_CHAT_SLACK_BOT_TOKEN env variable is required");
 
-const state = createRedisState({ url: REDIS_URL });
+const PI_CHAT_SLACK_SIGNING_SECRET = process.env.PI_CHAT_SLACK_SIGNING_SECRET;
+if (!PI_CHAT_SLACK_SIGNING_SECRET)
+  throw new Error("PI_CHAT_SLACK_SIGNING_SECRET env variable is required");
+
+// Redis state — shared between Chat SDK and pi session persistence
+const PI_CHAT_REDIS_URL = process.env.PI_CHAT_REDIS_URL;
+if (!PI_CHAT_REDIS_URL)
+  throw new Error("PI_CHAT_REDIS_URL env variable is required");
+
+const state = createRedisState({ url: PI_CHAT_REDIS_URL });
 await state.connect();
 
 async function safeRemoveReaction(
@@ -179,7 +194,10 @@ const bot = new Chat({
   state,
   concurrency: "queue",
   adapters: {
-    slack: createSlackAdapter(),
+    slack: createSlackAdapter({
+      botToken: PI_CHAT_SLACK_BOT_TOKEN,
+      signingSecret: PI_CHAT_SLACK_SIGNING_SECRET,
+    }),
   },
 });
 await bot.initialize();
@@ -200,7 +218,7 @@ async function fetchImages(attachments: Attachment[]): Promise<ImageContent[]> {
         // fetchData is a closure stripped during queue serialization — fall back
         // to fetching url_private directly with the bot token.
         const response = await fetch(attachment.url, {
-          headers: { Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}` },
+          headers: { Authorization: `Bearer ${PI_CHAT_SLACK_BOT_TOKEN}` },
         });
         if (!response.ok)
           throw new Error(`HTTP ${response.status} ${response.statusText}`);
@@ -351,7 +369,7 @@ bot.onReaction(["thumbs_up"], async (event) => {
 
   try {
     const raw = event.raw as { item: { channel: string; ts: string } };
-    const slack = new WebClient(process.env.SLACK_BOT_TOKEN);
+    const slack = new WebClient(PI_CHAT_SLACK_BOT_TOKEN);
     const data = await slack.chat.getPermalink({
       channel: raw.item.channel,
       message_ts: raw.item.ts,
@@ -386,7 +404,7 @@ bot.onSubscribedMessage(async (thread, message) => {
 //    Bridges Node.js IncomingMessage ↔ Web-standard Request/Response so we
 //    can hand requests straight to bot.webhooks.slack without extra deps.
 // ---------------------------------------------------------------------------
-const PORT = process.env.PORT ?? 4000;
+const PORT = process.env.PI_CHAT_PORT ?? 4000;
 const WEBHOOK_PATH = "/api/webhooks/slack";
 
 const server = createServer(async (req, res) => {

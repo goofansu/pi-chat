@@ -9,21 +9,21 @@ import { createProjectProviderServices } from "../src/provider-config.ts";
 test("rejects a missing project provider API key", () => {
   assert.throws(
     () => createProjectProviderServices("anthropic", undefined),
-    /PI_PROVIDER_API_KEY env variable is required/,
+    /PI_CHAT_PROVIDER_API_KEY env variable is required/,
   );
 });
 
 test("rejects an empty project provider API key", () => {
   assert.throws(
     () => createProjectProviderServices("anthropic", ""),
-    /PI_PROVIDER_API_KEY env variable is required/,
+    /PI_CHAT_PROVIDER_API_KEY env variable is required/,
   );
 });
 
 test("rejects a whitespace-only project provider API key", () => {
   assert.throws(
     () => createProjectProviderServices("anthropic", " \t\n"),
-    /PI_PROVIDER_API_KEY env variable is required/,
+    /PI_CHAT_PROVIDER_API_KEY env variable is required/,
   );
 });
 
@@ -115,10 +115,10 @@ test("the application injects project provider services into Pi sessions", async
   ];
 
   assert.match(source, /createProjectProviderServices\(/);
-  assert.match(source, /process\.env\.PI_PROVIDER_API_KEY/);
+  assert.match(source, /process\.env\.PI_CHAT_PROVIDER_API_KEY/);
   assert.match(
     source,
-    /await createProjectProviderServices\([\s\S]*?modelProvider,[\s\S]*?process\.env\.PI_PROVIDER_API_KEY,[\s\S]*?\)/,
+    /await createProjectProviderServices\([\s\S]*?modelProvider,[\s\S]*?process\.env\.PI_CHAT_PROVIDER_API_KEY,[\s\S]*?\)/,
   );
   assert.ok(sessionCallStarts.length > 0, "expected a createAgentSession call");
   assert.equal(

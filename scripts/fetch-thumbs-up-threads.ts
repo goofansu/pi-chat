@@ -4,7 +4,7 @@ import { WebClient } from "@slack/web-api";
 
 /**
  * Fetch Slack parent threads containing at least one message with a native `+1`
- * reaction. Requires `SLACK_BOT_TOKEN` in the environment.
+ * reaction. Requires `PI_CHAT_SLACK_BOT_TOKEN` in the environment.
  *
  * Usage:
  *   pnpm fetch-thumbs-up-threads -- --since <date> [--until <date>] [--channel <name-or-id>] [--markdown <path>]
@@ -547,8 +547,9 @@ async function findMatchingThreads(
 
 const args = parseArgs(process.argv.slice(2));
 async function main(): Promise<void> {
-  const token = process.env.SLACK_BOT_TOKEN;
-  if (!token) throw new Error("SLACK_BOT_TOKEN env variable is required");
+  const token = process.env.PI_CHAT_SLACK_BOT_TOKEN;
+  if (!token)
+    throw new Error("PI_CHAT_SLACK_BOT_TOKEN env variable is required");
 
   const oldest = parseSince(args.since).toString();
   const latest = parseUntil(args.until);
