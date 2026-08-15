@@ -4,9 +4,8 @@
     "node": ">=22.19.0"
   },
   "scripts": {
-    "fetch-thumbs-up-threads": "node --env-file=.env --experimental-strip-types scripts/fetch-thumbs-up-threads.ts",
     "start": "node --env-file=.env --experimental-strip-types src/index.ts",
-    "test": "node --experimental-strip-types --test scripts/*.test.ts",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check --write .",
     "lint:check": "biome check .",
