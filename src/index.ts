@@ -9,8 +9,8 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
-import bashGitReadonlyExtension from "./extensions/bash-git-readonly.ts";
 import claudeExtension, { findClaudeBinary } from "./extensions/claude.ts";
+import gitHistoryExtension from "./extensions/git-history.ts";
 import { projectCwd } from "./extensions/utils.ts";
 import { createProjectProviderServices } from "./provider-config.ts";
 import {
@@ -73,14 +73,7 @@ console.log("[pi] Thinking level:", thinkingLevel);
 // pi identifies intent and delegates investigation to claude. The built-in read
 // tools are kept only for trivial lookups and for checking what claude reports —
 // see the system prompt below.
-const tools: string[] = [
-  "read",
-  "grep",
-  "find",
-  "ls",
-  "git-readonly",
-  "claude",
-];
+const tools: string[] = ["read", "grep", "find", "ls", "git-history", "claude"];
 console.log("[pi] Tools:", tools.join(", "));
 
 // The claude tool drives the Claude Code CLI, which ships in a per-platform
@@ -99,7 +92,7 @@ const loader = new DefaultResourceLoader({
   cwd: projectDir,
   agentDir,
   noExtensions: true,
-  extensionFactories: [bashGitReadonlyExtension, claudeExtension],
+  extensionFactories: [gitHistoryExtension, claudeExtension],
   noSkills: true,
   noPromptTemplates: true,
   systemPromptOverride: () =>
@@ -116,8 +109,8 @@ Delegation discipline (internal work, not part of the reply):
 - Write the delegation as a task, not a forwarded message. State the specific question, the behaviour that matters, and what a complete answer must cover — for example both sides of a state transition, what happens on retry, or which limits and expirations apply.
 - Carry the thread forward yourself. If a feature name, customer scenario, or conclusion from an earlier delegation matters, restate it inside the new prompt; claude will not have it otherwise.
 - If claude's answer is incomplete, hedged, or leaves a path unverified, delegate again with a narrower and more specific task. Do not fill the gap with a guess.
-- claude can only read files in the project directory. It cannot see git history, run commands, or search the web. Use git-readonly when repository history is needed. If the answer depends on commands or web search, say what could not be checked rather than answering from current code as though it were the whole story.
-- Use read, grep, find, ls, and git-readonly only to confirm a specific detail claude reported, or for a trivial lookup that needs no investigation. Never use them to run your own investigation in place of delegating.
+- claude can only read files in the project directory. It cannot see git history, run commands, or search the web. Use git-history when repository history is needed. If the answer depends on commands or web search, say what could not be checked rather than answering from current code as though it were the whole story.
+- Use read, grep, find, ls, and git-history only to confirm a specific detail claude reported, or for a trivial lookup that needs no investigation. Never use them to run your own investigation in place of delegating.
 
 Response format:
 Question: Restate the question in your own words to confirm understanding.

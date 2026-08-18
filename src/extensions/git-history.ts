@@ -13,11 +13,11 @@ const ALLOWED_SUBCOMMANDS = new Set(["log", "show"]);
 const UNSAFE_TOKEN_PATTERN = /[;&|<>`$()\n\r]/;
 const UNSAFE_OPTIONS = new Set(["--output", "-o"]);
 
-interface GitReadonlyParams {
+interface GitHistoryParams {
   args: string[];
 }
 
-interface GitReadonlyDetails {
+interface GitHistoryDetails {
   command: string;
   args: string[];
   cwd: string;
@@ -25,7 +25,7 @@ interface GitReadonlyDetails {
   truncated: boolean;
 }
 
-export function validateGitReadonlyArgs(args: string[]): string[] {
+export function validateGitHistoryArgs(args: string[]): string[] {
   if (!Array.isArray(args) || args.length === 0) {
     throw new Error("args must start with an allowed git subcommand");
   }
@@ -73,16 +73,16 @@ function truncateText(
   }
 
   return {
-    text: `${truncated}\n\n[git-readonly output truncated to ${maxBytes} bytes. Narrow the git query for more specific output.]`,
+    text: `${truncated}\n\n[git-history output truncated to ${maxBytes} bytes. Narrow the git query for more specific output.]`,
     truncated: true,
   };
 }
 
-export async function runGitReadonly(
+export async function runGitHistory(
   args: string[],
   signal?: AbortSignal,
-): Promise<{ text: string; details: GitReadonlyDetails }> {
-  const safeArgs = validateGitReadonlyArgs(args);
+): Promise<{ text: string; details: GitHistoryDetails }> {
+  const safeArgs = validateGitHistoryArgs(args);
   const cwd = projectCwd();
 
   const { stdout, stderr } = await execFileAsync("git", safeArgs, {
@@ -110,13 +110,13 @@ export async function runGitReadonly(
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
-    name: "git-readonly",
-    label: "Git Readonly",
+    name: "git-history",
+    label: "Git History",
     description:
       "Inspect repository history with an allowlisted git log or git show command.",
     promptSnippet: "Inspect repository history with git log or git show",
     promptGuidelines: [
-      "Use git-readonly when recent commits or historical changes help answer a project question.",
+      "Use git-history when recent commits or historical changes help answer a project question.",
       "Pass arguments as an array without the leading 'git', for example ['log', '--oneline', '-10'] or ['show', 'HEAD', '--stat'].",
     ],
     parameters: Type.Object({
@@ -127,8 +127,8 @@ export default function (pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params, signal) {
-      const result = await runGitReadonly(
-        (params as GitReadonlyParams).args,
+      const result = await runGitHistory(
+        (params as GitHistoryParams).args,
         signal,
       );
       return {
@@ -138,13 +138,13 @@ export default function (pi: ExtensionAPI) {
     },
 
     renderCall(args, theme) {
-      const gitArgs = Array.isArray((args as GitReadonlyParams).args)
-        ? (args as GitReadonlyParams).args.join(" ")
+      const gitArgs = Array.isArray((args as GitHistoryParams).args)
+        ? (args as GitHistoryParams).args.join(" ")
         : "";
       const preview =
         gitArgs.length > 80 ? `${gitArgs.slice(0, 77)}...` : gitArgs;
       return new Text(
-        theme.fg("toolTitle", theme.bold("git-readonly ")) +
+        theme.fg("toolTitle", theme.bold("git-history ")) +
           theme.fg("dim", preview),
         0,
         0,
@@ -153,12 +153,12 @@ export default function (pi: ExtensionAPI) {
 
     renderResult(result, _options, theme) {
       const details = result.details as
-        | GitReadonlyDetails
+        | GitHistoryDetails
         | { error?: string }
         | undefined;
       const isError = Boolean(details && "error" in details && details.error);
       const icon = isError ? theme.fg("error", "✗") : theme.fg("success", "✓");
-      const title = `${icon} ${theme.fg("toolTitle", theme.bold("git-readonly"))}`;
+      const title = `${icon} ${theme.fg("toolTitle", theme.bold("git-history"))}`;
       const text = result.content[0];
       const body = text?.type === "text" ? text.text : "";
 
