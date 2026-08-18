@@ -1,6 +1,6 @@
 # pi-chat
 
-Chat with [pi](https://github.com/mariozechner/pi-coding-agent) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and Redis-backed state — pi handles reading and reasoning about the codebase.
+Chat with [pi](https://github.com/earendil-works/pi) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and Redis-backed state — pi handles reading and reasoning about the codebase.
 
 Mention the bot in any channel to start a thread. Follow-up messages in that thread are handled automatically without needing to `@mention` again.
 
