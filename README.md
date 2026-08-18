@@ -25,9 +25,9 @@ cp .env.example .env
 | Category | Variable | Description | Required |
 |---|---|---|---|
 | Server | `PI_CHAT_PORT` | Port to listen on | No (default: `4000`) |
-| Pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
-| Pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high`; thinking defaults to `medium`) | Yes |
-| Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
+| pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
+| pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high`; thinking defaults to `medium`) | Yes |
+| pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
 | Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
 | State adapters | `PI_CHAT_REDIS_URL` | Redis connection URL | Yes |
@@ -39,7 +39,7 @@ cp .env.example .env
 
 Every variable carries the `PI_CHAT_` prefix, including the Slack and Redis ones the adapters would otherwise read unprefixed. That is what keeps this project's configuration out of the environment handed to the delegated Claude Code session — see Security.
 
-`PI_CHAT_MODEL` must identify a built-in Pi model. Provider authentication and the model registry are isolated from user-scoped Pi configuration: the server uses only `PI_CHAT_PROVIDER_API_KEY` and does not read `~/.pi/agent/auth.json` or `~/.pi/agent/models.json`.
+`PI_CHAT_MODEL` must identify a built-in pi model. Provider authentication and the model registry are isolated from user-scoped pi configuration: the server uses only `PI_CHAT_PROVIDER_API_KEY` and does not read `~/.pi/agent/auth.json` or `~/.pi/agent/models.json`.
 
 ## Usage
 
@@ -71,7 +71,7 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 
 ## Architecture
 
-pi does not investigate the codebase itself. Its job is to work out what the user actually needs to know, delegate the investigation to the `claude` tool, and translate the result into a support-agent answer.
+Pi does not investigate the codebase itself. Its job is to work out what the user actually needs to know, delegate the investigation to the `claude` tool, and translate the result into a support-agent answer.
 
 ```
 Slack question ─> pi (identify intent) ─> claude (investigate) ─> pi (translate) ─> reply
@@ -80,12 +80,12 @@ Slack question ─> pi (identify intent) ─> claude (investigate) ─> pi (tran
 
 Two consequences worth knowing:
 
-- **Each delegation is one-shot.** `claude` starts a fresh session every call, with no memory of the thread or of its own previous answers. pi holds the thread's context and must restate anything relevant in each new prompt.
+- **Each delegation is one-shot.** `claude` starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
 - **`claude` sees only project files.** It has no shell, git history, or network. When history is needed, pi can inspect it separately through `git-history`; questions that require other commands or the network remain unavailable, and pi is instructed to say so rather than guess.
 
 ## Security
 
-Everything the bot can do is read-only and scoped to `PI_CHAT_PROJECT_DIR`. pi has **`read`, `grep`, `find`, `ls`, `git-history`, `claude`**; the delegated Claude Code session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
+Everything the bot can do is read-only and scoped to `PI_CHAT_PROJECT_DIR`. Pi has **`read`, `grep`, `find`, `ls`, `git-history`, `claude`**; the delegated Claude Code session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
 
 `git-history` always runs from `PI_CHAT_PROJECT_DIR` and accepts only `log` and `show`. Other subcommands, shell syntax, and output-to-file options are rejected before Git starts.
 
