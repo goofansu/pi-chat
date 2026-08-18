@@ -75,17 +75,19 @@ pi does not investigate the codebase itself. Its job is to work out what the use
 
 ```
 Slack question ─> pi (identify intent) ─> claude (investigate) ─> pi (translate) ─> reply
-                        └─> read/grep/find/ls, for verification and trivial lookups only
+                        └─> read/grep/find/ls/git-readonly, for verification and trivial lookups only
 ```
 
 Two consequences worth knowing:
 
 - **Each delegation is one-shot.** `claude` starts a fresh session every call, with no memory of the thread or of its own previous answers. pi holds the thread's context and must restate anything relevant in each new prompt.
-- **`claude` sees only project files.** It has no shell, no git history, and no network. Questions that depend on those cannot be answered from code alone, and pi is instructed to say so rather than guess.
+- **`claude` sees only project files.** It has no shell, git history, or network. When history is needed, pi can inspect it separately through `git-readonly`; questions that require other commands or the network remain unavailable, and pi is instructed to say so rather than guess.
 
 ## Security
 
-Everything the bot can do is reading, and only inside `PI_CHAT_PROJECT_DIR`. pi has **`read`, `grep`, `find`, `ls`, `claude`**; the delegated Claude Code session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every path it names is resolved, symlinks included, and refused if it lands outside the project directory.
+Everything the bot can do is read-only and scoped to `PI_CHAT_PROJECT_DIR`. pi has **`read`, `grep`, `find`, `ls`, `git-readonly`, `claude`**; the delegated Claude Code session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
+
+`git-readonly` always runs from `PI_CHAT_PROJECT_DIR` and accepts only `log` and `show`. Other subcommands, shell syntax, and output-to-file options are rejected before Git starts.
 
 The delegated session inherits nothing it should not: no `settings.json`, `CLAUDE.md`, MCP servers, hooks, skills, or plugins from disk, and no transcript left behind. Its environment is the server's minus every `PI_CHAT_*` variable, so a configuration value added later is withheld by construction rather than by remembering to list it. Each delegation is bounded by turns, cost, and wall clock, so a runaway or stalled investigation ends on its own.
 

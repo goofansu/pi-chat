@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { validateGitReadonlyArgs } from "../src/extensions/bash-git-readonly.ts";
 
-test("allows git log relevant readonly commands", () => {
+test("allows only git log and show", () => {
   assert.deepEqual(validateGitReadonlyArgs(["log", "--oneline", "-5"]), [
     "log",
     "--oneline",
@@ -16,15 +16,15 @@ test("allows git log relevant readonly commands", () => {
   ]);
 });
 
-test("rejects mutating git commands", () => {
-  assert.throws(
-    () => validateGitReadonlyArgs(["checkout", "main"]),
-    /not allowed/,
-  );
-  assert.throws(
-    () => validateGitReadonlyArgs(["reset", "--hard"]),
-    /not allowed/,
-  );
+test("rejects every other git subcommand", () => {
+  for (const args of [
+    ["status"],
+    ["diff", "HEAD~1"],
+    ["blame", "README.md"],
+    ["checkout", "main"],
+  ]) {
+    assert.throws(() => validateGitReadonlyArgs(args), /not allowed/);
+  }
 });
 
 test("rejects shell-like arguments", () => {
@@ -38,19 +38,13 @@ test("rejects shell-like arguments", () => {
   );
 });
 
-test("rejects git output-to-file and arbitrary-file options", () => {
+test("rejects git output-to-file options", () => {
   assert.throws(
     () => validateGitReadonlyArgs(["log", "--output=/tmp/out"]),
     /Unsafe/,
   );
   assert.throws(
-    () =>
-      validateGitReadonlyArgs([
-        "diff",
-        "--no-index",
-        "/etc/passwd",
-        "/dev/null",
-      ]),
+    () => validateGitReadonlyArgs(["show", "-o", "/tmp/out", "HEAD"]),
     /Unsafe/,
   );
 });

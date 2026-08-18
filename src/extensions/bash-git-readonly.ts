@@ -8,24 +8,10 @@ import { projectCwd } from "./utils.ts";
 
 const execFileAsync = promisify(execFile);
 
-const ALLOWED_SUBCOMMANDS = new Set([
-  "blame",
-  "branch",
-  "describe",
-  "diff",
-  "log",
-  "merge-base",
-  "name-rev",
-  "rev-list",
-  "rev-parse",
-  "shortlog",
-  "show",
-  "status",
-  "tag",
-]);
+const ALLOWED_SUBCOMMANDS = new Set(["log", "show"]);
 
 const UNSAFE_TOKEN_PATTERN = /[;&|<>`$()\n\r]/;
-const UNSAFE_OPTIONS = new Set(["--exec", "--output", "-o", "--no-index"]);
+const UNSAFE_OPTIONS = new Set(["--output", "-o"]);
 
 interface GitReadonlyParams {
   args: string[];
@@ -127,18 +113,16 @@ export default function (pi: ExtensionAPI) {
     name: "git-readonly",
     label: "Git Readonly",
     description:
-      "Run one allowlisted read-only git command for repository history and metadata inspection, especially git log/show/diff/blame queries.",
-    promptSnippet:
-      "Run read-only git history commands such as log, show, diff, blame, status, branch, tag, rev-parse, or merge-base",
+      "Inspect repository history with an allowlisted git log or git show command.",
+    promptSnippet: "Inspect repository history with git log or git show",
     promptGuidelines: [
-      "Use git-readonly when recent commits, authorship, history, branches, tags, revisions, or commit diffs help answer a project question.",
+      "Use git-readonly when recent commits or historical changes help answer a project question.",
       "Pass arguments as an array without the leading 'git', for example ['log', '--oneline', '-10'] or ['show', 'HEAD', '--stat'].",
-      "Do not use this tool for mutating commands such as checkout, reset, commit, merge, rebase, branch deletion, or tag creation.",
     ],
     parameters: Type.Object({
       args: Type.Array(Type.String(), {
         description:
-          "Git arguments without the leading 'git'. Must start with an allowed read-only subcommand. Examples: ['log','--oneline','-10'], ['show','HEAD','--stat'], ['blame','path/to/file.ts'].",
+          "Git arguments without the leading 'git'. Must start with log or show. Examples: ['log','--oneline','-10'], ['show','HEAD','--stat'].",
       }),
     }),
 
