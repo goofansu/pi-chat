@@ -10,10 +10,8 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
 import bashGitReadonlyExtension from "./extensions/bash-git-readonly.ts";
-import claudeExtension, {
-  findClaudeBinary,
-  projectCwd,
-} from "./extensions/claude.ts";
+import claudeExtension, { findClaudeBinary } from "./extensions/claude.ts";
+import { projectCwd } from "./extensions/utils.ts";
 import { createProjectProviderServices } from "./provider-config.ts";
 import {
   handleSessionPrompt,

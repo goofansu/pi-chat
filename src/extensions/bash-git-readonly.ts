@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
+import { projectCwd } from "./utils.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -67,13 +68,6 @@ export function validateGitReadonlyArgs(args: string[]): string[] {
   }
 
   return normalized;
-}
-
-function projectCwd(): string {
-  return (process.env.PI_PROJECT_DIR || process.cwd()).replace(
-    /^~/,
-    process.env.HOME ?? "",
-  );
 }
 
 function truncateText(

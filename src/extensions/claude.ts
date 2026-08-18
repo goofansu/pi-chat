@@ -29,6 +29,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getMarkdownTheme, keyHint } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import { projectCwd } from "./utils.ts";
 
 const SDK_PACKAGE = "@anthropic-ai/claude-agent-sdk";
 
@@ -228,24 +229,6 @@ export interface ClaudeDetails {
 }
 
 // ── Project directory and output shaping ─────────────────────────────────────
-
-/**
- * The directory a delegation is confined to.
- *
- * Missing configuration is fatal rather than defaulted, mirroring index.ts. A
- * fallback to `process.cwd()` would point the delegated session at pi-chat's own
- * checkout — which holds `.env`, and therefore the Slack token, the provider key
- * and the Redis URL — and the path guard, being defined relative to the same
- * value, would allow reading all of it.
- */
-export function projectCwd(env: NodeJS.ProcessEnv = process.env): string {
-  const configured = env.PI_CHAT_PROJECT_DIR?.trim();
-  if (!configured)
-    throw new Error("PI_CHAT_PROJECT_DIR env variable is required");
-  // Resolved because the SDK documents `cwd` as an absolute path, and because
-  // the guard compares against it.
-  return path.resolve(expandHome(configured));
-}
 
 export function truncateText(
   text: string,
