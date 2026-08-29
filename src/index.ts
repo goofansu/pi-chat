@@ -92,6 +92,7 @@ const loader = new DefaultResourceLoader({
   extensionFactories: [gitHistoryExtension, claudeExtension],
   noSkills: true,
   noPromptTemplates: true,
+  noContextFiles: true,
   systemPromptOverride: () =>
     `You are a support assistant for the ${projectName} codebase, helping support agents answer questions quickly and accurately.
 
