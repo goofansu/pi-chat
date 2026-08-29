@@ -26,7 +26,7 @@ cp .env.example .env
 |---|---|---|---|
 | Server | `PI_CHAT_PORT` | Port to listen on | No (default: `4000`) |
 | pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
-| pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high`; thinking defaults to `medium`) | Yes |
+| pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high` or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
 | pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
 | Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |

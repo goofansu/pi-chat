@@ -12,6 +12,7 @@ import { WebClient } from "@slack/web-api";
 import claudeExtension, { findClaudeBinary } from "./extensions/claude.ts";
 import gitHistoryExtension from "./extensions/git-history.ts";
 import { projectCwd } from "./extensions/utils.ts";
+import { parsePiChatModel } from "./model-ref.ts";
 import { createProjectProviderServices } from "./provider-config.ts";
 import {
   handleSessionPrompt,
@@ -26,8 +27,6 @@ interface ImageContent {
   data: string;
   mimeType: string;
 }
-
-type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
 import {
   type Attachment,
@@ -53,13 +52,11 @@ console.log("[pi] Agent dir:", agentDir);
 
 const PI_CHAT_MODEL = process.env.PI_CHAT_MODEL;
 if (!PI_CHAT_MODEL) throw new Error("PI_CHAT_MODEL env variable is required");
-const [modelRef, configuredThinkingLevel = "medium"] = PI_CHAT_MODEL.split(":");
-const thinkingLevel = (configuredThinkingLevel || "medium") as ThinkingLevel;
-const [modelProvider, modelId] = modelRef.split("/");
-if (!modelProvider || !modelId)
-  throw new Error(
-    `PI_CHAT_MODEL must be in the form provider/model[:thinking], got: ${PI_CHAT_MODEL}`,
-  );
+const {
+  provider: modelProvider,
+  modelId,
+  thinkingLevel,
+} = parsePiChatModel(PI_CHAT_MODEL);
 
 const { modelRuntime } = await createProjectProviderServices(
   modelProvider,
