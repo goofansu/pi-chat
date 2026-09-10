@@ -1,6 +1,6 @@
 # pi-chat
 
-Chat with [pi](https://github.com/earendil-works/pi) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and Redis-backed state — pi handles reading and reasoning about the codebase.
+Chat with [Pi](https://github.com/earendil-works/pi) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and Redis-backed state — Pi handles reading and reasoning about the codebase.
 
 Mention the bot in any channel to start a thread. Follow-up messages in that thread are handled automatically without needing to `@mention` again.
 
@@ -25,9 +25,9 @@ cp .env.example .env
 | Category | Variable | Description | Required |
 |---|---|---|---|
 | Server | `PI_CHAT_PORT` | Port to listen on | No (default: `4000`) |
-| pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
-| pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high` or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
-| pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
+| Pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
+| Pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high` or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
+| Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
 | Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
 | State adapters | `PI_CHAT_REDIS_URL` | Redis connection URL | Yes |
@@ -39,7 +39,7 @@ cp .env.example .env
 
 Every variable carries the `PI_CHAT_` prefix, including the Slack and Redis ones the adapters would otherwise read unprefixed. That is what keeps this project's configuration out of the environment handed to the delegated Claude Code session — see Security.
 
-`PI_CHAT_MODEL` must identify a built-in pi model. Provider authentication and the model registry are isolated from user-scoped pi configuration: the server uses only `PI_CHAT_PROVIDER_API_KEY` and does not read `~/.pi/agent/auth.json` or `~/.pi/agent/models.json`.
+`PI_CHAT_MODEL` must identify a built-in Pi model. Provider authentication and the model registry are isolated from user-scoped Pi configuration: the server uses only `PI_CHAT_PROVIDER_API_KEY` and does not read `~/.pi/agent/auth.json` or `~/.pi/agent/models.json`.
 
 ## Usage
 
@@ -74,14 +74,14 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 Pi does not investigate the codebase itself. Its job is to work out what the user actually needs to know, delegate the investigation to the `claude` tool, and translate the result into a support-agent answer.
 
 ```
-Slack question ─> pi (identify intent) ─> claude (investigate) ─> pi (translate) ─> reply
+Slack question ─> Pi (identify intent) ─> claude (investigate) ─> Pi (translate) ─> reply
                         └─> read/grep/find/ls/git-history, for verification and trivial lookups only
 ```
 
 Two consequences worth knowing:
 
 - **Each delegation is one-shot.** `claude` starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
-- **`claude` sees only project files.** It has no shell, git history, or network. When history is needed, pi can inspect it separately through `git-history`; questions that require other commands or the network remain unavailable, and pi is instructed to say so rather than guess.
+- **`claude` sees only project files.** It has no shell, git history, or network. When history is needed, Pi can inspect it separately through `git-history`; questions that require other commands or the network remain unavailable, and Pi is instructed to say so rather than guess.
 
 ## Security
 
