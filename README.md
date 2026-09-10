@@ -33,9 +33,9 @@ cp .env.example .env
 | State adapters | `PI_CHAT_REDIS_URL` | Redis connection URL | Yes |
 | Extensions | `PI_CHAT_CLAUDE_MODEL` | Model for the `claude` tool — an alias (`sonnet`, `opus`, `haiku`) or a full model id (default: `sonnet`) | No |
 | Extensions | `PI_CHAT_CLAUDE_EFFORT` | Reasoning depth for a delegation: `low`, `medium`, `high`, `xhigh`, `max` (default: `medium`) | No |
-| Extensions | `PI_CHAT_CLAUDE_MAX_TURNS` | Turn ceiling for one `claude` delegation (default: `30`) | No |
-| Extensions | `PI_CHAT_CLAUDE_MAX_BUDGET_USD` | Cost ceiling for one `claude` delegation, in USD; `off` removes it (default: `5`) | No |
-| Extensions | `PI_CHAT_CLAUDE_TIMEOUT_MS` | Wall-clock ceiling for one `claude` delegation (default: `600000`) | No |
+| Extensions | `PI_CHAT_CLAUDE_MAX_TURNS` | Turn ceiling for one Claude delegation (default: `30`) | No |
+| Extensions | `PI_CHAT_CLAUDE_MAX_BUDGET_USD` | Cost ceiling for one Claude delegation, in USD; `off` removes it (default: `5`) | No |
+| Extensions | `PI_CHAT_CLAUDE_TIMEOUT_MS` | Wall-clock ceiling for one Claude delegation (default: `600000`) | No |
 
 Every variable carries the `PI_CHAT_` prefix, including the Slack and Redis ones the adapters would otherwise read unprefixed. That is what keeps this project's configuration out of the environment handed to the delegated Claude Code session — see Security.
 
@@ -74,14 +74,14 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 Pi does not investigate the codebase itself. Its job is to work out what the user actually needs to know, delegate the investigation to the `claude` tool, and translate the result into a support-agent answer.
 
 ```
-Slack question ─> Pi (identify intent) ─> claude (investigate) ─> Pi (translate) ─> reply
+Slack question ─> Pi (identify intent) ─> Claude (investigate) ─> Pi (translate) ─> reply
                         └─> read/grep/find/ls/git-history, for verification and trivial lookups only
 ```
 
 Two consequences worth knowing:
 
-- **Each delegation is one-shot.** `claude` starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
-- **`claude` sees only project files.** It has no shell, git history, or network. When history is needed, Pi can inspect it separately through `git-history`; questions that require other commands or the network remain unavailable, and Pi is instructed to say so rather than guess.
+- **Each delegation is one-shot.** Claude starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
+- **Claude sees only project files.** It has no shell, git history, or network. When history is needed, Pi can inspect it separately through `git-history`; questions that require other commands or the network remain unavailable, and Pi is instructed to say so rather than guess.
 
 ## Security
 
