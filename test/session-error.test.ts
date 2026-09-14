@@ -19,7 +19,7 @@ test("returns a generic Slack reply without exposing exception details", () => {
   assert.doesNotMatch(reply, /deepseek|API key|\/tmp\/key/);
 });
 
-test("builds the Redis key for a thread session", () => {
+test("builds the state key for a thread session", () => {
   assert.equal(
     sessionPathKey("slack:C0123:1234.5678"),
     "pi:session:slack:C0123:1234.5678",
@@ -60,7 +60,7 @@ test("stops recovery when session invalidation fails", async () => {
     recoverSessionError(new Error("prompt failed"), {
       invalidateSession: async () => {
         calls.push("invalidate");
-        throw new Error("redis unavailable");
+        throw new Error("state store unavailable");
       },
       removeProgressReaction: async () => {
         calls.push("remove-progress");
@@ -72,7 +72,7 @@ test("stops recovery when session invalidation fails", async () => {
         calls.push("post");
       },
     }),
-    /redis unavailable/,
+    /state store unavailable/,
   );
 
   assert.deepEqual(calls, ["invalidate"]);

@@ -326,7 +326,7 @@ test("withholds this application's configuration from the delegated CLI", () => 
     PI_CHAT_SLACK_SIGNING_SECRET: "sign-secret",
     PI_CHAT_PROVIDER_API_KEY: "provider-secret",
     PI_CHAT_PROJECT_DIR: "/srv/project",
-    PI_CHAT_REDIS_URL: "redis://user:pw@host",
+    PI_CHAT_POSTGRES_URL: "postgresql://db.internal/postgres",
     // Nothing here enumerates the names above: one prefix covers whatever is
     // added later, which is the reason the variables are named this way.
     PI_CHAT_SOMETHING_ADDED_LATER: "future-secret",

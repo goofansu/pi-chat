@@ -1,13 +1,13 @@
 # pi-chat
 
-Chat with [Pi](https://github.com/earendil-works/pi) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and Redis-backed state — Pi handles reading and reasoning about the codebase.
+Chat with [Pi](https://github.com/earendil-works/pi) about a project over Slack, powered by the [Chat SDK](https://github.com/mariozechner/chat). The Chat SDK handles the Slack adapter, thread subscriptions, and PostgreSQL-backed state — Pi handles reading and reasoning about the codebase.
 
 Mention the bot in any channel to start a thread. Follow-up messages in that thread are handled automatically without needing to `@mention` again.
 
 ## Requirements
 
 - Node.js >=22.19.0
-- A Redis server (used by the Chat SDK for thread subscriptions and conversation history)
+- A PostgreSQL database (used by the Chat SDK for thread subscriptions and conversation history)
 - The Claude CLI logged in on the host. The delegated session reuses that login, so no separate API key is needed; the CLI itself is installed automatically as a platform-specific dependency.
 
 ## Install
@@ -30,14 +30,14 @@ cp .env.example .env
 | Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
 | Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
-| State adapters | `PI_CHAT_REDIS_URL` | Redis connection URL | Yes |
+| State adapters | `PI_CHAT_POSTGRES_URL` | PostgreSQL connection URL | Yes |
 | Extensions | `PI_CHAT_CLAUDE_MODEL` | Model for the `claude` tool — an alias (`sonnet`, `opus`, `haiku`) or a full model id (default: `sonnet`) | No |
 | Extensions | `PI_CHAT_CLAUDE_EFFORT` | Reasoning depth for a delegation: `low`, `medium`, `high`, `xhigh`, `max` (default: `medium`) | No |
 | Extensions | `PI_CHAT_CLAUDE_MAX_TURNS` | Turn ceiling for one Claude delegation (default: `30`) | No |
 | Extensions | `PI_CHAT_CLAUDE_MAX_BUDGET_USD` | Cost ceiling for one Claude delegation, in USD; `off` removes it (default: `5`) | No |
 | Extensions | `PI_CHAT_CLAUDE_TIMEOUT_MS` | Wall-clock ceiling for one Claude delegation (default: `600000`) | No |
 
-Every variable carries the `PI_CHAT_` prefix, including the Slack and Redis ones the adapters would otherwise read unprefixed. That is what keeps this project's configuration out of the environment handed to the delegated Claude session — see Security.
+Every variable carries the `PI_CHAT_` prefix, including the Slack and PostgreSQL ones the adapters would otherwise read unprefixed. That is what keeps this project's configuration out of the environment handed to the delegated Claude session — see Security.
 
 `PI_CHAT_MODEL` must identify a built-in Pi model. Provider authentication and the model registry are isolated from user-scoped Pi configuration: the server uses only `PI_CHAT_PROVIDER_API_KEY` and does not read `~/.pi/agent/auth.json` or `~/.pi/agent/models.json`.
 
@@ -67,7 +67,7 @@ Then mention the bot in any channel with a question:
 @pi how does the authentication flow work?
 ```
 
-The bot replies in the thread. Conversation history and thread subscriptions persist in Redis across server restarts.
+The bot replies in the thread. Conversation history and thread subscriptions persist in PostgreSQL across server restarts. The Chat SDK creates its `chat_state_*` tables automatically on first connection.
 
 ## Architecture
 

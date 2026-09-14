@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 
 import { createSlackAdapter } from "@chat-adapter/slack";
-import { createRedisState } from "@chat-adapter/state-redis";
+import { createPostgresState } from "@chat-adapter/state-pg";
 import {
   createAgentSession,
   DefaultResourceLoader,
@@ -145,12 +145,15 @@ const PI_CHAT_SLACK_SIGNING_SECRET = process.env.PI_CHAT_SLACK_SIGNING_SECRET;
 if (!PI_CHAT_SLACK_SIGNING_SECRET)
   throw new Error("PI_CHAT_SLACK_SIGNING_SECRET env variable is required");
 
-// Redis state — shared between Chat SDK and pi session persistence
-const PI_CHAT_REDIS_URL = process.env.PI_CHAT_REDIS_URL;
-if (!PI_CHAT_REDIS_URL)
-  throw new Error("PI_CHAT_REDIS_URL env variable is required");
+// PostgreSQL state — shared between Chat SDK and pi session persistence
+const PI_CHAT_POSTGRES_URL = process.env.PI_CHAT_POSTGRES_URL;
+if (!PI_CHAT_POSTGRES_URL)
+  throw new Error("PI_CHAT_POSTGRES_URL env variable is required");
 
-const state = createRedisState({ url: PI_CHAT_REDIS_URL });
+const state = createPostgresState({
+  url: PI_CHAT_POSTGRES_URL,
+  keyPrefix: "pi-chat",
+});
 await state.connect();
 
 async function safeRemoveReaction(
