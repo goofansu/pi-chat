@@ -19,7 +19,7 @@
     "@earendil-works/pi-coding-agent": "^0.87.0",
     "@earendil-works/pi-tui": "^0.87.0",
     "@slack/web-api": "^8.0.0",
-    "chat": "^4.36.0"
+    "chat": "^4.41.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.6",
