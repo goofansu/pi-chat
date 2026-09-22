@@ -18,8 +18,8 @@ importers:
         specifier: ^4.41.0
         version: 4.41.0(debug@4.4.3)(zod@4.4.3)
       '@chat-adapter/state-pg':
-        specifier: 4.36.0
-        version: 4.36.0(zod@4.4.3)
+        specifier: 4.41.0
+        version: 4.41.0(zod@4.4.3)
       '@earendil-works/pi-ai':
         specifier: ^0.87.0
         version: 0.87.0(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(ws@8.21.1)(zod@4.4.3)
@@ -270,8 +270,8 @@ packages:
     resolution: {integrity: sha512-6y+P1vpI8edvBHhO/SlF5sMgWlDxJiDTsTcAiJO5yOyADoVl97wlTaOiXfc5Y+b2+fhEcERvhNpjGyvT7hRdVA==}
     engines: {node: '>=20'}
 
-  '@chat-adapter/state-pg@4.36.0':
-    resolution: {integrity: sha512-iqSJ5XGHBEO/4anvWD423ZnZO7qBxGSNena4o1IHbMMQHCVYUooK2+JxF282bRS1YVZ1tue9shb0+jdYCXUprA==}
+  '@chat-adapter/state-pg@4.41.0':
+    resolution: {integrity: sha512-VuKDZIPrvdwZLhubjuvX8orQmZZUqtuuTyebxzwQl29sPIQJO7mvHzpdYvdo4Y+xd728wiBKZkE4XxUNc5awxw==}
     engines: {node: '>=20'}
 
   '@earendil-works/chord@0.87.0':
@@ -791,21 +791,6 @@ packages:
 
   character-entities@2.0.2:
     resolution: {integrity: sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ==}
-
-  chat@4.36.0:
-    resolution: {integrity: sha512-3A5HjnjilStMazAgY2PESloyT8g+GsoEf5uvqzPtvpGJrNh9oGWQ7IRZzw4+pFFTbUnCEtsclEAc2KMloRRZRQ==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      ai: ^6.0.182 || ^7.0.0
-      workflow: ^5.0.0-beta.35
-      zod: ^3.0.0 || ^4.0.0
-    peerDependenciesMeta:
-      ai:
-        optional: true
-      workflow:
-        optional: true
-      zod:
-        optional: true
 
   chat@4.41.0:
     resolution: {integrity: sha512-vMeODhulMdi7od1c6e4B/ZfIp/zq0f5KP3WKNCAAdNrTOeDgjRNZQZahaIax/t/gu+LE5vwJSjFU46Ro9Kx9tA==}
@@ -1976,9 +1961,9 @@ snapshots:
       - workflow
       - zod
 
-  '@chat-adapter/state-pg@4.36.0(zod@4.4.3)':
+  '@chat-adapter/state-pg@4.41.0(zod@4.4.3)':
     dependencies:
-      chat: 4.36.0(zod@4.4.3)
+      chat: 4.41.0(zod@4.4.3)
       pg: 8.23.0
     transitivePeerDependencies:
       - ai
@@ -2465,20 +2450,6 @@ snapshots:
   chalk@6.0.0: {}
 
   character-entities@2.0.2: {}
-
-  chat@4.36.0(zod@4.4.3):
-    dependencies:
-      '@workflow/serde': 4.1.0-beta.2
-      mdast-util-to-string: 4.0.0
-      remark-gfm: 4.0.1
-      remark-parse: 11.0.0
-      remark-stringify: 11.0.0
-      remend: 1.3.0
-      unified: 11.0.5
-    optionalDependencies:
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - supports-color
 
   chat@4.41.0(zod@4.4.3):
     dependencies:
