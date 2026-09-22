@@ -240,7 +240,7 @@ async function fetchImages(attachments: Attachment[]): Promise<ImageContent[]> {
 
 async function askPi(thread: Thread, message: Message): Promise<void> {
   console.log(
-    `[slack] message from ${message.author.fullName}: ${message.text}`,
+    `[slack] message received (thread=${thread.id}, chars=${message.text.length}, attachments=${message.attachments.length})`,
   );
 
   const existingSessionPath = await getSessionPath(thread.id);
@@ -280,7 +280,9 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     return;
   }
 
-  console.log(`[pi] prompt (thread=${thread.id}): ${prompt}`);
+  console.log(
+    `[pi] prompt prepared (thread=${thread.id}, chars=${prompt.length})`,
+  );
 
   await thread.adapter.addReaction(thread.id, message.id, emoji.eyes);
 

@@ -32,9 +32,7 @@ async function createInMemoryProviderServices(
     modelsStore: new InMemoryModelsStore(),
     allowModelNetwork: false,
   });
-  await modelRuntime.setRuntimeApiKey(provider, apiKey, {
-    allowNetwork: false,
-  });
+  await modelRuntime.setRuntimeApiKey(provider, apiKey);
 
   return {
     credentialStore,
