@@ -15,8 +15,8 @@ importers:
         specifier: ^0.3.232
         version: 0.3.232(@anthropic-ai/sdk@0.125.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(zod@4.4.3)
       '@chat-adapter/slack':
-        specifier: ^4.36.0
-        version: 4.36.0(debug@4.4.3)(zod@4.4.3)
+        specifier: ^4.41.0
+        version: 4.41.0(debug@4.4.3)(zod@4.4.3)
       '@chat-adapter/state-pg':
         specifier: 4.36.0
         version: 4.36.0(zod@4.4.3)
@@ -262,12 +262,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@chat-adapter/shared@4.36.0':
-    resolution: {integrity: sha512-6w3GhiJiu6cEnO7c/j5Pu17x37mAKhcVosSo05k5z1CaaB6SoYps/rwbd02qqqxbzrS8usJ3/yhK+N4tazJjSA==}
+  '@chat-adapter/shared@4.41.0':
+    resolution: {integrity: sha512-h/MiKMoQf5nl5Zgua8EMxVSdyylFg8pA+nKnwYNexPHzr59I1PT9u7z3EVSOrjbMjre3MmlrUM0TPbIWaRrSZg==}
     engines: {node: '>=20'}
 
-  '@chat-adapter/slack@4.36.0':
-    resolution: {integrity: sha512-1w6idmjXjkUPLK5VmiG3S8CbTm+BOj51nio+4x9Y1HJsdkS/hnthT3Eam8owakTmKib6jBoog74GkRo8evY56w==}
+  '@chat-adapter/slack@4.41.0':
+    resolution: {integrity: sha512-6y+P1vpI8edvBHhO/SlF5sMgWlDxJiDTsTcAiJO5yOyADoVl97wlTaOiXfc5Y+b2+fhEcERvhNpjGyvT7hRdVA==}
     engines: {node: '>=20'}
 
   '@chat-adapter/state-pg@4.36.0':
@@ -1952,21 +1952,21 @@ snapshots:
   '@biomejs/cli-win32-x64@2.5.14':
     optional: true
 
-  '@chat-adapter/shared@4.36.0(zod@4.4.3)':
+  '@chat-adapter/shared@4.41.0(zod@4.4.3)':
     dependencies:
-      chat: 4.36.0(zod@4.4.3)
+      chat: 4.41.0(zod@4.4.3)
     transitivePeerDependencies:
       - ai
       - supports-color
       - workflow
       - zod
 
-  '@chat-adapter/slack@4.36.0(debug@4.4.3)(zod@4.4.3)':
+  '@chat-adapter/slack@4.41.0(debug@4.4.3)(zod@4.4.3)':
     dependencies:
-      '@chat-adapter/shared': 4.36.0(zod@4.4.3)
+      '@chat-adapter/shared': 4.41.0(zod@4.4.3)
       '@slack/socket-mode': 2.0.7(debug@4.4.3)
       '@slack/web-api': 7.19.0(debug@4.4.3)
-      chat: 4.36.0(zod@4.4.3)
+      chat: 4.41.0(zod@4.4.3)
     transitivePeerDependencies:
       - ai
       - bufferutil
