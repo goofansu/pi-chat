@@ -330,6 +330,9 @@ test("withholds this application's configuration from the delegated CLI", () => 
     // Nothing here enumerates the names above: one prefix covers whatever is
     // added later, which is the reason the variables are named this way.
     PI_CHAT_SOMETHING_ADDED_LATER: "future-secret",
+    // Derived by the server for @goofansu/pi-web.
+    BRAVE_SEARCH_API_KEY: "brave-secret",
+    FIRECRAWL_API_KEY: "firecrawl-secret",
   });
 
   for (const key of Object.keys(stripped)) {

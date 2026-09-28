@@ -549,6 +549,14 @@ export function createPathGuardHook(cwd: string): HookCallback {
  */
 export const ENV_PREFIX = "PI_CHAT_";
 
+// pi-web reads Brave's conventional name. The server derives it from a
+// PI_CHAT_ variable, so it remains application configuration and must not enter
+// the delegated process under its alias.
+const DELEGATED_ENV_DENYLIST = new Set([
+  "BRAVE_SEARCH_API_KEY",
+  "FIRECRAWL_API_KEY",
+]);
+
 /**
  * process.env minus this application's own configuration.
  *
@@ -560,7 +568,7 @@ export const ENV_PREFIX = "PI_CHAT_";
 export function delegatedEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const delegated: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(env)) {
-    if (key.startsWith(ENV_PREFIX)) continue;
+    if (key.startsWith(ENV_PREFIX) || DELEGATED_ENV_DENYLIST.has(key)) continue;
     delegated[key] = value;
   }
   return delegated;

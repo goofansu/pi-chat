@@ -14,10 +14,10 @@ test("requires PI_CHAT_PROJECT_DIR rather than using the server cwd", () => {
 
 test("expands a leading ~ and resolves to an absolute path", () => {
   const env = {
-    PI_CHAT_PROJECT_DIR: "~/work/openapply.master",
-    HOME: "/Users/james",
+    PI_CHAT_PROJECT_DIR: "~/work/example-project",
+    HOME: "/home",
   };
-  assert.equal(projectCwd(env), "/Users/james/work/openapply.master");
+  assert.equal(projectCwd(env), "/home/work/example-project");
 
   // `~name` is another user's home, not this one's.
   assert.equal(

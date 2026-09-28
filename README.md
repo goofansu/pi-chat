@@ -28,6 +28,10 @@ cp .env.example .env
 | Pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
 | Pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high` or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
 | Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
+| Routing | `PI_CHAT_JEV_API_KEY` | TypeSafe AI API key used by Jev to classify each question as engineering or support | Yes |
+| Web search | `PI_CHAT_BRAVE_SEARCH_API_KEY` | Brave Search API key. On exe.dev, an attached `brave` integration is discovered automatically when this is omitted | No |
+| Web fetch | `PI_CHAT_FIRECRAWL_API_KEY` | Firecrawl API key. On exe.dev, an attached `firecrawl` integration is discovered automatically; otherwise Firecrawl's keyless tier is used | No |
+| Web access | `PI_CHAT_WEB_SEARCH_DOMAINS` | Comma-separated hostname allowlist applied to both search and page fetching (for example, `docs.example.com,support.example.com`) | Yes |
 | Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
 | State adapters | `PI_CHAT_POSTGRES_URL` | PostgreSQL connection URL | Yes |
@@ -71,21 +75,24 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 
 ## Architecture
 
-Pi does not investigate the codebase itself. Its job is to work out what the user actually needs to know, delegate the investigation to the `claude` tool, and translate the result into a support-agent answer.
+Jev routes each message before Pi answers it. Engineering questions are investigated against the codebase through `claude`; support questions search the configured websites and can fetch current full-page content through Firecrawl.
 
 ```
-Slack question ─> Pi (identify intent) ─> Claude (investigate) ─> Pi (translate) ─> reply
-                        └─> read/grep/find/ls/git-history, for verification and trivial lookups only
+Slack question ─> Jev (classify)
+                    ├─> engineering ─> Pi ─> Claude/codebase ─> reply
+                    └─> support ─────> Pi ─> search/fetch allowed websites ─> reply
 ```
 
-Two consequences worth knowing:
+Three consequences worth knowing:
 
-- **Each delegation is one-shot.** Claude starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
-- **Claude sees only project files.** It has no shell, git history, or network. When history is needed, Pi can inspect it separately through `git-history`; questions that require other commands or the network remain unavailable, and Pi is instructed to say so rather than guess.
+- **Routing is enforced per message.** Jev selects the evidence source, not the answer audience: every response remains written for support agents. Support turns expose only `web_search` and `web_fetch` when Jev selects support with confidence above `0.95`. Every other result—including Jev request failures—falls back to engineering and checks the codebase. The previous route is supplied as context for ambiguous follow-ups.
+- **Each engineering delegation is one-shot.** Claude starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
+- **Claude sees only project files.** It has no shell, git history, or network. Pi can inspect history separately through `git-history`; support answers search and fetch only the configured websites.
+- **Support references are prompt-guided.** Support answers are instructed to end with a bold `References` heading and a bullet list of unique Markdown links (`- [Source title](URL)`) from configured domains, without repeating links in the answer body.
 
 ## Security
 
-Everything the bot can do is read-only and scoped to `PI_CHAT_PROJECT_DIR`. Pi has **`read`, `grep`, `find`, `ls`, `git-history`, `claude`**; the delegated Claude session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
+Everything the bot can do is read-only. Each user question and the previous route are sent to TypeSafe AI for Jev classification. Filesystem tools are scoped to `PI_CHAT_PROJECT_DIR`; engineering turns can use **`read`, `grep`, `find`, `ls`, `git-history`, `claude`**, while support turns can use only **`web_search`, `web_fetch`**. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it. The delegated Claude session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
 
 `git-history` always runs from `PI_CHAT_PROJECT_DIR` and accepts only `log` and `show`. Other subcommands, shell syntax, and output-to-file options are rejected before Git starts.
 

@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { fileURLToPath } from "node:url";
 
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createPostgresState } from "@chat-adapter/state-pg";
@@ -12,8 +13,13 @@ import { WebClient } from "@slack/web-api";
 import claudeExtension, { findClaudeBinary } from "./extensions/claude.ts";
 import gitHistoryExtension from "./extensions/git-history.ts";
 import { projectCwd } from "./extensions/utils.ts";
+import {
+  parseWebSearchDomains,
+  webSearchPolicyExtension,
+} from "./extensions/web-search-policy.ts";
 import { parsePiChatModel } from "./model-ref.ts";
 import { createProjectProviderServices } from "./provider-config.ts";
+import { JevQuestionRouter, type QuestionRoute } from "./question-router.ts";
 import {
   handleSessionPrompt,
   recoverSessionError,
@@ -67,10 +73,45 @@ if (!model) throw new Error(`Model ${PI_CHAT_MODEL} not found`);
 console.log("[pi] Model:", model.id);
 console.log("[pi] Thinking level:", thinkingLevel);
 
-// pi identifies intent and delegates investigation to claude. The built-in read
-// tools are kept only for trivial lookups and for checking what claude reports —
-// see the system prompt below.
-const tools: string[] = ["read", "grep", "find", "ls", "git-history", "claude"];
+const PI_CHAT_JEV_API_KEY = process.env.PI_CHAT_JEV_API_KEY;
+if (!PI_CHAT_JEV_API_KEY)
+  throw new Error("PI_CHAT_JEV_API_KEY env variable is required");
+const questionRouter = new JevQuestionRouter(PI_CHAT_JEV_API_KEY);
+
+const webSearchDomains = parseWebSearchDomains(
+  process.env.PI_CHAT_WEB_SEARCH_DOMAINS,
+);
+console.log("[pi] Web search domains:", webSearchDomains.join(", "));
+
+// @goofansu/pi-web expects Brave's conventional variable. Derive it from this
+// application's prefixed configuration, which delegatedEnv explicitly withholds.
+const braveSearchApiKey = process.env.PI_CHAT_BRAVE_SEARCH_API_KEY?.trim();
+if (braveSearchApiKey) process.env.BRAVE_SEARCH_API_KEY = braveSearchApiKey;
+else delete process.env.BRAVE_SEARCH_API_KEY;
+
+const firecrawlApiKey = process.env.PI_CHAT_FIRECRAWL_API_KEY?.trim();
+if (firecrawlApiKey) process.env.FIRECRAWL_API_KEY = firecrawlApiKey;
+else delete process.env.FIRECRAWL_API_KEY;
+
+const webSearchExtensionPath = fileURLToPath(
+  import.meta.resolve("@goofansu/pi-web/extensions/web-search.ts"),
+);
+const webFetchExtensionPath = fileURLToPath(
+  import.meta.resolve("@goofansu/pi-web/extensions/web-fetch.ts"),
+);
+
+// Jev selects one route per message. Keeping disjoint active tool sets makes
+// that decision enforceable rather than merely prompt guidance.
+const engineeringTools = [
+  "read",
+  "grep",
+  "find",
+  "ls",
+  "git-history",
+  "claude",
+];
+const supportTools = ["web_search", "web_fetch"];
+const tools: string[] = [...engineeringTools, ...supportTools];
 console.log("[pi] Tools:", tools.join(", "));
 
 // The claude tool drives the Claude Code CLI, which ships in a per-platform
@@ -89,7 +130,12 @@ const loader = new DefaultResourceLoader({
   cwd: projectDir,
   agentDir,
   noExtensions: true,
-  extensionFactories: [gitHistoryExtension, claudeExtension],
+  additionalExtensionPaths: [webSearchExtensionPath, webFetchExtensionPath],
+  extensionFactories: [
+    gitHistoryExtension,
+    claudeExtension,
+    webSearchPolicyExtension(webSearchDomains),
+  ],
   noSkills: true,
   noPromptTemplates: true,
   noContextFiles: true,
@@ -97,18 +143,12 @@ const loader = new DefaultResourceLoader({
     `You are a support assistant for the ${projectName} codebase, helping support agents answer questions quickly and accurately.
 
 You answer questions about ${projectName}, including its code, architecture, features, and behaviour. For questions outside ${projectName}, reply briefly that they are outside the current project scope.
+Web search is restricted to these configured domains: ${webSearchDomains.join(", ")}.
 
-Your job is to work out what the user actually needs to know, delegate the investigation to the claude tool, and turn what comes back into a support-agent answer. You do not investigate the codebase yourself.
-
-Delegation discipline (internal work, not part of the reply):
-- Always delegate to claude before answering anything about behaviour, features, or how the product works. Do this even when you think you already know the answer, and on follow-up questions in a thread.
-- Identify the real question first. Support agents often relay a customer's words, which may name the wrong feature or assume a mechanism that does not exist. Delegate the question the user needs answered, not the words they typed.
-- claude starts fresh every time. It cannot see this thread, your earlier questions, or its own previous answers. Each prompt must stand entirely alone.
-- Write the delegation as a task, not a forwarded message. State the specific question, the behaviour that matters, and what a complete answer must cover — for example both sides of a state transition, what happens on retry, or which limits and expirations apply.
-- Carry the thread forward yourself. If a feature name, customer scenario, or conclusion from an earlier delegation matters, restate it inside the new prompt; claude will not have it otherwise.
-- If claude's answer is incomplete, hedged, or leaves a path unverified, delegate again with a narrower and more specific task. Do not fill the gap with a guess.
-- claude can only read files in the project directory. It cannot see git history, run commands, or search the web. Use git-history when repository history is needed. If the answer depends on commands or web search, say what could not be checked rather than answering from current code as though it were the whole story.
-- Use read, grep, find, ls, and git-history only to confirm a specific detail claude reported, or for a trivial lookup that needs no investigation. Never use them to run your own investigation in place of delegating.
+A trusted Jev classifier selects one route for every user message by activating only that route's tools:
+- Engineering route: repository tools and claude are active. Delegate the codebase investigation to claude, then translate its findings into a support-agent answer.
+- Support route: only web_search and web_fetch are active. Search the configured websites, then fetch the most valuable pages when their full or freshest content improves the answer. Cite the sources.
+Never attempt to bypass the selected route or claim to have checked a source unavailable through the active tools.
 
 Response format:
 Question: Restate the question in your own words to confirm understanding.
@@ -125,9 +165,24 @@ Guidelines:
 - Restate claude's findings in support-agent terms. Its raw output is written for a developer: never pass through its file paths, class names, or internal mechanics.
 - Carry claude's own hedging into your answer. If it says a path was not verified, the customer-facing answer must be qualified too — do not present a hedged finding as settled.
 - If claude cannot find a clear answer, say so plainly rather than speculating.
-- If a faithful answer would exceed 300 words, prefer trimming background, hedging, or restated context over dropping a behaviour-changing caveat (e.g. limits, expirations, exclusions). Caveats that change what the customer sees must stay; prose that does not must go.`,
+- If a faithful answer would exceed 300 words, prefer trimming background, hedging, or restated context over dropping a behaviour-changing caveat (e.g. limits, expirations, exclusions). Caveats that change what the customer sees must stay; prose that does not must go.
+- Only for answers that use the web route, append references at the end in this exact style:
+\`\`\`markdown
+**References**
+- [First source title](FIRST_URL_FROM_WEB_TOOL_RESULTS)
+- [Second source title](SECOND_URL_FROM_WEB_TOOL_RESULTS)
+\`\`\`
+Follow the example's structure without wrapping the actual answer in a code fence. List each source URL once, use Markdown links from configured support domains, and do not repeat links in the answer body.`,
 });
 await loader.reload();
+const extensionErrors = loader.getExtensions().errors;
+if (extensionErrors.length > 0) {
+  throw new Error(
+    `Failed to load Pi extensions: ${extensionErrors
+      .map(({ path, error }) => `${path}: ${error}`)
+      .join("; ")}`,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // 3. Create the bot
@@ -155,6 +210,24 @@ const state = createPostgresState({
   keyPrefix: "pi-chat",
 });
 await state.connect();
+
+function questionRouteKey(threadId: string): string {
+  return `question-route:${threadId}`;
+}
+
+async function getQuestionRoute(
+  threadId: string,
+): Promise<QuestionRoute | undefined> {
+  const value = await state.get(questionRouteKey(threadId));
+  return value === "engineering" || value === "support" ? value : undefined;
+}
+
+async function setQuestionRoute(
+  threadId: string,
+  route: QuestionRoute,
+): Promise<void> {
+  await state.set(questionRouteKey(threadId), route);
+}
 
 async function safeRemoveReaction(
   thread: Thread,
@@ -213,7 +286,8 @@ async function fetchImages(attachments: Attachment[]): Promise<ImageContent[]> {
     try {
       let data: Buffer;
       if (attachment.fetchData) {
-        data = await attachment.fetchData();
+        const fetched = await attachment.fetchData();
+        data = Buffer.isBuffer(fetched) ? fetched : Buffer.from(fetched);
       } else if (attachment.url) {
         // fetchData is a closure stripped during queue serialization — fall back
         // to fetching url_private directly with the bot token.
@@ -286,6 +360,33 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 
   await thread.adapter.addReaction(thread.id, message.id, emoji.eyes);
 
+  let route: QuestionRoute;
+  const routingStartedAt = performance.now();
+  try {
+    const previousRoute = await getQuestionRoute(thread.id);
+    const routingQuestion =
+      message.text.trim() ||
+      "The user sent image attachments without accompanying text.";
+    const decision = await questionRouter.classify(
+      routingQuestion,
+      previousRoute,
+    );
+    route = decision.route;
+    await setQuestionRoute(thread.id, route);
+    console.log(
+      `[jev] classification=${decision.classification}, route=${route}, confidence=${decision.confidence.toFixed(2)}, engineering=${decision.probabilities.engineering.toFixed(2)}, support=${decision.probabilities.support.toFixed(2)}, model=${decision.model}, latency_ms=${Math.round(performance.now() - routingStartedAt)}, thread=${thread.id}`,
+    );
+  } catch (err) {
+    // If routing is unavailable, verify the answer against the codebase rather
+    // than trusting a support classification that did not clear the threshold.
+    route = "engineering";
+    await setQuestionRoute(thread.id, route);
+    console.error(
+      `[jev] classification failed; falling back to engineering (thread=${thread.id}):`,
+      err,
+    );
+  }
+
   const sessionManager = existingSessionPath
     ? SessionManager.open(existingSessionPath as string)
     : SessionManager.create(projectDir);
@@ -299,6 +400,9 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     thinkingLevel,
     resourceLoader: loader,
   });
+  session.setActiveToolsByName(
+    route === "engineering" ? engineeringTools : supportTools,
+  );
 
   // Store session file path on first message in a thread
   if (!existingSessionPath && session.sessionFile) {
@@ -309,6 +413,24 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
   }
 
   let response = "";
+
+  const readLatestResponse = (): string => {
+    const last = session.messages.findLast((m) => m.role === "assistant");
+    let text = "";
+    if (last && Array.isArray(last.content)) {
+      text = last.content
+        .filter((content) => content.type === "text")
+        .map((content) => content.text)
+        .join("");
+    } else if (last && typeof last.content === "string") {
+      text = last.content;
+    }
+
+    return text
+      .replace(/^---+\s*$/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  };
 
   session.subscribe((event) => {
     switch (event.type) {
@@ -336,21 +458,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
       });
     },
     continueAfterPrompt: async () => {
-      const last = session.messages.findLast((m) => m.role === "assistant");
-      if (last && Array.isArray(last.content)) {
-        response = last.content
-          .filter((c) => c.type === "text")
-          .map((c) => c.text)
-          .join("");
-      } else if (last && typeof last.content === "string") {
-        response = last.content;
-      }
-
-      // Strip stray horizontal rules the model sometimes emits
-      response = response
-        .replace(/^---+\s*$/gm, "")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
+      response = readLatestResponse();
 
       console.log(`[slack] response: ${response.length} chars`);
       await thread.post(response ? { markdown: response } : "(no response)");
