@@ -16,7 +16,7 @@
     "@chat-adapter/slack": "^4.41.0",
     "@chat-adapter/state-pg": "4.41.0",
     "@earendil-works/pi-ai": "^0.87.0",
-    "@earendil-works/pi-coding-agent": "^0.87.0",
+    "@earendil-works/pi-coding-agent": "^0.87.1",
     "@earendil-works/pi-tui": "^0.87.0",
     "@goofansu/pi-web": "1.0.0",
     "@slack/web-api": "^8.1.1",
