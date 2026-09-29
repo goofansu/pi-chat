@@ -26,6 +26,7 @@ import {
   sessionErrorReply,
   sessionPathKey,
 } from "./session-error.ts";
+import { sanitizedSlackText, threadHistoryLine } from "./slack-message.ts";
 
 /** Matches pi-ai ImageContent */
 interface ImageContent {
@@ -318,6 +319,9 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
   );
 
   const existingSessionPath = await getSessionPath(thread.id);
+  // Slack mentions identify people and the bot, not question content. Keep
+  // those identities out of both the routing request and Pi's transcript.
+  const userText = sanitizedSlackText(message);
 
   // Fetch image attachments
   const images = await fetchImages(message.attachments);
@@ -327,7 +331,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
   let prompt: string;
   if (existingSessionPath) {
     // Continuing thread — pi session already has history
-    prompt = message.text;
+    prompt = userText;
   } else {
     // New thread — fetch history for initial context
     try {
@@ -342,11 +346,12 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     }
     const history = thread.recentMessages
       .filter((m: Message) => m.id !== message.id)
-      .map((m: Message) => `${m.author.fullName}: ${m.text}`)
+      .map(threadHistoryLine)
+      .filter((line) => !line.endsWith(": "))
       .join("\n");
     prompt = history
-      ? `Thread context:\n${history}\n\nQuestion: ${message.text}`
-      : message.text;
+      ? `Thread context:\n${history}\n\nQuestion: ${userText}`
+      : userText;
   }
 
   if (!prompt.trim() && images.length === 0) {
@@ -365,8 +370,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
   try {
     const previousRoute = await getQuestionRoute(thread.id);
     const routingQuestion =
-      message.text.trim() ||
-      "The user sent image attachments without accompanying text.";
+      userText || "The user sent image attachments without accompanying text.";
     const decision = await questionRouter.classify(
       routingQuestion,
       previousRoute,
