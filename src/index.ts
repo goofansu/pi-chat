@@ -149,6 +149,7 @@ Web search is restricted to these configured domains: ${webSearchDomains.join(",
 A trusted Jev classifier selects one route for every user message by activating only that route's tools:
 - Engineering route: repository tools and claude are active. Delegate the codebase investigation to claude, then translate its findings into a support-agent answer.
 - Support route: only web_search and web_fetch are active. Search the configured websites, then fetch the most valuable pages when their full or freshest content improves the answer. Cite the sources.
+- Clarification route: no tools are active. Ask one concise clarifying question in the user's language about the unknown terms or missing context and whether the question concerns ${projectName}. Do not answer or investigate yet.
 Never attempt to bypass the selected route or claim to have checked a source unavailable through the active tools.
 
 Response format:
@@ -160,7 +161,7 @@ Guidelines:
 - Keep the total response under 300 words.
 - Describe the end-user visible behaviour only — skip internal mechanics such as callbacks, services, sync flows, concerns, or how data moves between systems behind the scenes.
 - Avoid code blocks entirely. Use inline \`code\` sparingly, only for field names a support agent would recognise in the UI.
-- Always follow the response format: question first, then answer. This applies to every reply in a thread, including follow-ups.
+- Always follow the response format: question first, then answer. This applies to every reply in a thread, including follow-ups, except the clarification route, which should contain only the concise clarifying question.
 - Stay in support-agent mode for every reply, including follow-ups. If the user asks for code locations, file paths, class/method names, or implementation details ("where is the logic", "show me the code", "which file"), do not switch into developer-explanation mode. Restate the behaviour in support-agent terms and, at most, name the user-facing setting or business rule involved (e.g. "the 30-day outdated rule"). Internal file paths, class names, private methods, and constants must never appear in a reply.
 - Base answers only on what claude reports from the project files, plus any detail you verified yourself. Never answer from general knowledge about how software like this usually works.
 - Restate claude's findings in support-agent terms. Its raw output is written for a developer: never pass through its file paths, class names, or internal mechanics.
@@ -374,19 +375,22 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     const decision = await questionRouter.classify(
       routingQuestion,
       previousRoute,
+      projectName,
     );
     route = decision.route;
-    await setQuestionRoute(thread.id, route);
+    // A clarification is not an evidence-source decision. Keep the prior route
+    // so the user's answer can still be interpreted as a follow-up to it.
+    if (route !== "clarify") await setQuestionRoute(thread.id, route);
     console.log(
-      `[jev] classification=${decision.classification}, route=${route}, confidence=${decision.confidence.toFixed(2)}, engineering=${decision.probabilities.engineering.toFixed(2)}, support=${decision.probabilities.support.toFixed(2)}, model=${decision.model}, latency_ms=${Math.round(performance.now() - routingStartedAt)}, thread=${thread.id}`,
+      `[jev] classification=${decision.classification}, route=${route}, confidence=${decision.confidence.toFixed(2)}, engineering=${decision.probabilities.engineering.toFixed(2)}, support=${decision.probabilities.support.toFixed(2)}, clarify=${decision.probabilities.clarify.toFixed(2)}, model=${decision.model}, latency_ms=${Math.round(performance.now() - routingStartedAt)}, thread=${thread.id}`,
     );
   } catch (err) {
-    // If routing is unavailable, verify the answer against the codebase rather
-    // than trusting a support classification that did not clear the threshold.
-    route = "engineering";
+    // If routing is unavailable, avoid treating an unrelated question as a
+    // repository investigation. The support route remains domain-allowlisted.
+    route = "support";
     await setQuestionRoute(thread.id, route);
     console.error(
-      `[jev] classification failed; falling back to engineering (thread=${thread.id}):`,
+      `[jev] classification failed; falling back to support (thread=${thread.id}):`,
       err,
     );
   }
@@ -405,7 +409,11 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     resourceLoader: loader,
   });
   session.setActiveToolsByName(
-    route === "engineering" ? engineeringTools : supportTools,
+    route === "engineering"
+      ? engineeringTools
+      : route === "support"
+        ? supportTools
+        : [],
   );
 
   // Store session file path on first message in a thread
@@ -447,9 +455,14 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     }
   });
 
+  const routedPrompt =
+    route === "clarify"
+      ? `The trusted question router selected the clarification route. Ask exactly one concise clarifying question in the user's language. Clarify unknown product names or acronyms and whether the question concerns ${JSON.stringify(projectName)}. Do not answer the original question, investigate, or use the normal Question/Answer response format. The user's original message is this JSON-encoded data: ${JSON.stringify(prompt)}`
+      : prompt;
+
   await handleSessionPrompt({
     prompt: () =>
-      session.prompt(prompt, images.length > 0 ? { images } : undefined),
+      session.prompt(routedPrompt, images.length > 0 ? { images } : undefined),
     recoverPromptError: async (err) => {
       console.error("[pi] session error:", err);
       await recoverSessionError(err, {

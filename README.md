@@ -80,19 +80,20 @@ Jev routes each message before Pi answers it. Engineering questions are investig
 ```
 Slack question ─> Jev (classify)
                     ├─> engineering ─> Pi ─> Claude/codebase ─> reply
-                    └─> support ─────> Pi ─> search/fetch allowed websites ─> reply
+                    ├─> support ─────> Pi ─> search/fetch allowed websites ─> reply
+                    └─> clarify ─────> Pi ─> ask for missing context
 ```
 
 Three consequences worth knowing:
 
-- **Routing is enforced per message.** Jev selects the evidence source, not the answer audience: every response remains written for support agents. Support turns expose only `web_search` and `web_fetch` when Jev selects support with confidence above `0.95`. Every other result—including Jev request failures—falls back to engineering and checks the codebase. The previous route is supplied as context for ambiguous follow-ups.
+- **Routing is enforced per message.** Jev receives the current project name and selects the evidence source, not the answer audience: every response remains written for support agents. Engineering tools are activated when Jev selects engineering with confidence of at least `0.50`. An explicit mention of the configured project breaks a low-confidence tie toward engineering. Other low-confidence results, unknown product names, unexplained acronyms, and missing context use a tool-free clarification route; the bot asks one concise question instead of guessing. Jev request failures use the support route. The previous evidence route is preserved while clarification is pending.
 - **Each engineering delegation is one-shot.** Claude starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
 - **Claude sees only project files.** It has no shell, git history, or network. Pi can inspect history separately through `git-history`; support answers search and fetch only the configured websites.
 - **Support references are prompt-guided.** Support answers are instructed to end with a bold `References` heading and a bullet list of unique Markdown links (`- [Source title](URL)`) from configured domains, without repeating links in the answer body.
 
 ## Security
 
-Everything the bot can do is read-only. Each user question and the previous route are sent to TypeSafe AI for Jev classification. Filesystem tools are scoped to `PI_CHAT_PROJECT_DIR`; engineering turns can use **`read`, `grep`, `find`, `ls`, `git-history`, `claude`**, while support turns can use only **`web_search`, `web_fetch`**. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it. The delegated Claude session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
+Everything the bot can do is read-only. Each user question, the current project name, and the previous route are sent to TypeSafe AI for Jev classification. Filesystem tools are scoped to `PI_CHAT_PROJECT_DIR`; engineering turns can use **`read`, `grep`, `find`, `ls`, `git-history`, `claude`**, while support turns can use only **`web_search`, `web_fetch`**. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it. The delegated Claude session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
 
 `git-history` always runs from `PI_CHAT_PROJECT_DIR` and accepts only `log` and `show`. Other subcommands, shell syntax, and output-to-file options are rejected before Git starts.
 
