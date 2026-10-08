@@ -1,0 +1,17 @@
+[Unit]
+Description=Pi Chat Slack bot
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/exedev/pi-chat
+ExecStart=/home/exedev/.local/bin/node --env-file=.env --experimental-strip-types src/index.ts
+Environment=HOME=/home/exedev
+Environment=NODE_ENV=production
+Environment=PATH=/home/exedev/.local/bin:/usr/local/bin:/usr/bin:/bin
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
