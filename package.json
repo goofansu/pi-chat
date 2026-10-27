@@ -20,7 +20,7 @@
     "@earendil-works/pi-tui": "^1.4.0",
     "@goofansu/pi-web": "1.0.1",
     "@slack/web-api": "^8.2.0",
-    "@typesafe-ai/sdk": "0.6.0",
+    "@typesafe-ai/sdk": "0.7.0",
     "chat": "^4.41.1"
   },
   "devDependencies": {
