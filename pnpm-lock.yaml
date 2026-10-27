@@ -18,8 +18,8 @@ importers:
         specifier: ^4.41.1
         version: 4.41.1(debug@4.4.3)(zod@4.6.7)
       '@chat-adapter/state-pg':
-        specifier: 4.41.1
-        version: 4.41.1(zod@4.6.7)
+        specifier: 4.43.0
+        version: 4.43.0(zod@4.6.7)
       '@earendil-works/pi-ai':
         specifier: ^1.4.0
         version: 1.4.0(@aws-sdk/credential-provider-node@3.972.84)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.7))(@smithy/signature-v4@5.7.4)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7)
@@ -259,6 +259,10 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@chat-adapter/catalog@4.43.0':
+    resolution: {integrity: sha512-JRH40HwYIXdIiwSc/gNw65q5T/gaf691n4//2YOhjRE4YO9KzSFJ/N+RrTD3M8iGz2jI4Jg92wb6OAqfYsAkTQ==}
+    engines: {node: '>=20'}
+
   '@chat-adapter/shared@4.41.1':
     resolution: {integrity: sha512-ia1Ctd4mclpiNd+sYUc/fo9RXIFoBr/Z0JFFk3hue1XiFXPTJClG/BHpS+243UmSkeE5JORjY4MmW+szdhhFWw==}
     engines: {node: '>=20'}
@@ -267,8 +271,8 @@ packages:
     resolution: {integrity: sha512-aq8sETBNrlrD13tB0pwMNf4jILRbrnc9TiDRP/Z9rVDejqDEImOrHVZgpX8ZHIJlT9cPXmJidgUPIE5iz45HLA==}
     engines: {node: '>=20'}
 
-  '@chat-adapter/state-pg@4.41.1':
-    resolution: {integrity: sha512-vKehzIxM/qgwkAXg34JV0I7dh5sKEbL2ehq78f1dD33QTL/hGiiHuGB1q+s06Fo4of+IQdpSUeMf0jVyMSug1w==}
+  '@chat-adapter/state-pg@4.43.0':
+    resolution: {integrity: sha512-vUS7BeiL3gb++AzZxPDIsOGVodRI3TvB77zWyinTt/k4GHhO/ldjeT/fpZyYxVsn137QzmRK//iQzibbdQghdA==}
     engines: {node: '>=20'}
 
   '@earendil-works/pi-agent-core@1.3.0':
@@ -663,6 +667,21 @@ packages:
 
   chat@4.41.1:
     resolution: {integrity: sha512-+/LDcLoYLihf/9Kp5ymj2ylvm6q5vySQTMn0ZoeU0UWDfNVmCNc6OiADW8hwnejOLfevUs8lEpgotG9rmIxZvg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      ai: ^6.0.182 || ^7.0.0
+      workflow: ^5.0.0-beta.35
+      zod: ^3.0.0 || ^4.0.0
+    peerDependenciesMeta:
+      ai:
+        optional: true
+      workflow:
+        optional: true
+      zod:
+        optional: true
+
+  chat@4.43.0:
+    resolution: {integrity: sha512-9ICxMewK1+4J0pEbR7eMBTh3JCL3NkyDHAgGrU/gblyyw/+QUcwFHCXIoQMt0Xlyup1c5smS0/gYytTt8NVc6w==}
     engines: {node: '>=20'}
     peerDependencies:
       ai: ^6.0.182 || ^7.0.0
@@ -1344,10 +1363,6 @@ packages:
     resolution: {integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==}
     engines: {node: '>=10'}
 
-  qs@6.16.0:
-    resolution: {integrity: sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==}
-    engines: {node: '>=0.6'}
-
   qs@6.16.1:
     resolution: {integrity: sha512-5Px6J7rfHBAGUhNQ3es4YzcOdBBw0SDcVtThJml4RdnKw4tKs2epA0kPZ+K8X+WiHktT93RHVcQ/3ym5aTCgtg==}
     engines: {node: '>=0.6'}
@@ -1823,6 +1838,8 @@ snapshots:
   '@biomejs/cli-win32-x64@2.5.15':
     optional: true
 
+  '@chat-adapter/catalog@4.43.0': {}
+
   '@chat-adapter/shared@4.41.1(zod@4.6.7)':
     dependencies:
       chat: 4.41.1(zod@4.6.7)
@@ -1847,9 +1864,9 @@ snapshots:
       - workflow
       - zod
 
-  '@chat-adapter/state-pg@4.41.1(zod@4.6.7)':
+  '@chat-adapter/state-pg@4.43.0(zod@4.6.7)':
     dependencies:
-      chat: 4.41.1(zod@4.6.7)
+      chat: 4.43.0(zod@4.6.7)
       pg: 8.23.1
     transitivePeerDependencies:
       - ai
@@ -2331,6 +2348,21 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  chat@4.43.0(zod@4.6.7):
+    dependencies:
+      '@chat-adapter/catalog': 4.43.0
+      '@workflow/serde': 4.1.0-beta.2
+      mdast-util-to-string: 4.0.0
+      remark-gfm: 4.0.1
+      remark-parse: 11.0.0
+      remark-stringify: 11.0.0
+      remend: 1.4.0
+      unified: 11.0.5
+    optionalDependencies:
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - supports-color
+
   combined-stream@1.0.8:
     dependencies:
       delayed-stream: 1.0.0
@@ -2453,7 +2485,7 @@ snapshots:
       once: 1.4.0
       parseurl: 1.3.3
       proxy-addr: 2.0.8
-      qs: 6.16.0
+      qs: 6.16.1
       range-parser: 1.3.0
       router: 2.2.0
       send: 1.2.1
@@ -3145,11 +3177,6 @@ snapshots:
   proxy-agent-negotiate@1.1.0: {}
 
   proxy-from-env@2.1.0: {}
-
-  qs@6.16.0:
-    dependencies:
-      es-define-property: 1.0.1
-      side-channel: 1.1.1
 
   qs@6.16.1:
     dependencies:
