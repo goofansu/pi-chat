@@ -24,7 +24,7 @@
     "chat": "^4.41.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "^2.6.2",
     "@types/node": "^26.6.5",
     "husky": "^9.1.7",
     "typescript": "^7.0.2"
