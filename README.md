@@ -87,7 +87,7 @@ Jev routes each message before Pi answers it. Engineering questions are investig
 
 ```
 Slack question ─> Jev (classify)
-                    ├─> engineering ─> Pi ─> read/search codebase + git history ─> reply
+                    ├─> engineering ─> Pi ─> read/search codebase ─> reply
                     ├─> support ─────> Pi ─> search/fetch allowed websites ─> reply
                     └─> clarify ─────> Pi ─> ask for missing context
 ```
@@ -96,15 +96,13 @@ Key behaviours:
 
 - **Routing is enforced per message.** Jev receives the current project name and selects the evidence source, not the answer audience: every response remains written for support agents. Engineering tools are activated when Jev selects engineering with confidence of at least `0.50`. An explicit mention of the configured project breaks a low-confidence tie toward engineering. Other low-confidence results, unknown product names, unexplained acronyms, and missing context use a tool-free clarification route; the bot asks one concise question instead of guessing. Jev request failures use the support route. The previous evidence route is preserved while clarification is pending.
 - **Pi investigates directly.** It retains the thread's context and traces relevant code paths itself, including state entry, exit, and trigger paths. Answers remain written for support agents, with uncertainty and behaviour-changing caveats preserved.
-- **Tool execution stays in Pi.** The Claude Code provider disables Claude's native tools and returns proposed tool calls to Pi. Engineering turns have read/search tools and `git-history`; support turns have only domain-allowlisted web tools.
+- **Tool execution stays in Pi.** The Claude Code provider disables Claude's native tools and returns proposed tool calls to Pi. Engineering turns have only read/search tools; support turns have only domain-allowlisted web tools.
 - **Support references are prompt-guided.** Support answers are instructed to end with a bold `References` heading and a bullet list of unique Markdown links (`- [Source title](URL)`) from configured domains, without repeating links in the answer body.
 
 ## Security
 
-The bot exposes read-only tools. Each user question, the current project name, and the previous route are sent to TypeSafe AI for Jev classification. Engineering turns can use **`read`, `grep`, `find`, `ls`, `git-history`**, while support turns can use only **`web_search`, `web_fetch`**. No shell, write, edit, or delegation tool is exposed. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it.
+The bot exposes read-only tools. Each user question, the current project name, and the previous route are sent to TypeSafe AI for Jev classification. Engineering turns can use **`read`, `grep`, `find`, `ls`**, while support turns can use only **`web_search`, `web_fetch`**. No shell, write, edit, or delegation tool is exposed. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it.
 
 Filesystem tools resolve relative paths from `PI_CHAT_PROJECT_DIR`, but Pi's built-in tools are not a filesystem sandbox: absolute paths, parent paths, and symlinks can reach files readable by the server account. The removed delegation tool's path guard does not apply to these tools. Use OS-level isolation and a minimally privileged account when repository-only access is required.
-
-`git-history` always runs from `PI_CHAT_PROJECT_DIR` and accepts only `log` and `show`. Other subcommands, shell syntax, and output-to-file options are rejected before Git starts.
 
 When using `claude-code`, treat the provider package and CLI as trusted server-side code. The CLI inherits the provider's environment policy, not the removed delegation tool's `PI_CHAT_*` filter. The package disables native tool execution and manages its own transport processes; Pi sessions are disposed after each Slack turn to release provider resources. Thread history remains in Pi's persisted session.

@@ -9,7 +9,6 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
-import gitHistoryExtension from "./extensions/git-history.ts";
 import { projectCwd } from "./extensions/utils.ts";
 import {
   parseWebSearchDomains,
@@ -89,7 +88,7 @@ const webFetchExtensionPath = fileURLToPath(
 
 // Jev selects one route per message. Keeping disjoint active tool sets makes
 // that decision enforceable rather than merely prompt guidance.
-const engineeringTools = ["read", "grep", "find", "ls", "git-history"];
+const engineeringTools = ["read", "grep", "find", "ls"];
 const supportTools = ["web_search", "web_fetch"];
 const tools: string[] = [...engineeringTools, ...supportTools];
 console.log("[pi] Tools:", tools.join(", "));
@@ -109,10 +108,7 @@ const {
     agentDir,
     resourceLoaderOptions: {
       additionalExtensionPaths: [webSearchExtensionPath, webFetchExtensionPath],
-      extensionFactories: [
-        gitHistoryExtension,
-        webSearchPolicyExtension(webSearchDomains),
-      ],
+      extensionFactories: [webSearchPolicyExtension(webSearchDomains)],
       systemPromptOverride: () =>
         `You are a support assistant for the ${projectName} codebase, helping support agents answer questions quickly and accurately.
 
@@ -120,7 +116,7 @@ You answer questions about ${projectName}, including its code, architecture, fea
 Web search is restricted to these configured domains: ${webSearchDomains.join(", ")}.
 
 A trusted Jev classifier selects one route for every user message by activating only that route's tools:
-- Engineering route: read, grep, find, ls, and git-history are active. Investigate the codebase directly with these tools, then explain the verified behaviour in support-agent terms. Stay within the project directory. Use git-history when historical changes help answer the question; there is no shell or delegation tool.
+- Engineering route: only read, grep, find, and ls are active. Investigate the codebase directly with these tools, then explain the verified behaviour in support-agent terms. Stay within the project directory; there is no shell or delegation tool.
 - Support route: only web_search and web_fetch are active. Search the configured websites, then fetch the most valuable pages when their full or freshest content improves the answer. Cite the sources.
 - Clarification route: no tools are active. Ask one concise clarifying question in the user's language about the unknown terms or missing context and whether the question concerns ${projectName}. Do not answer or investigate yet.
 Never attempt to bypass the selected route or claim to have checked a source unavailable through the active tools.

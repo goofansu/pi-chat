@@ -11,7 +11,6 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 
-import gitHistoryExtension from "../src/extensions/git-history.ts";
 import { webSearchPolicyExtension } from "../src/extensions/web-search-policy.ts";
 import { parsePiChatModel } from "../src/model-ref.ts";
 import { createProjectProviderServices } from "../src/provider-config.ts";
@@ -234,10 +233,7 @@ test("Claude Code sessions retain Pi's route-specific tool sets", async (t) => {
             import.meta.resolve("@goofansu/pi-web/extensions/web-fetch.ts"),
           ),
         ],
-        extensionFactories: [
-          gitHistoryExtension,
-          webSearchPolicyExtension(["docs.example.com"]),
-        ],
+        extensionFactories: [webSearchPolicyExtension(["docs.example.com"])],
       },
     },
   );
@@ -246,7 +242,7 @@ test("Claude Code sessions retain Pi's route-specific tool sets", async (t) => {
     model,
     "provider models must be registered before session creation",
   );
-  const engineeringTools = ["read", "grep", "find", "ls", "git-history"];
+  const engineeringTools = ["read", "grep", "find", "ls"];
   const supportTools = ["web_search", "web_fetch"];
   const { session } = await createAgentSession({
     ...services,
@@ -263,7 +259,13 @@ test("Claude Code sessions retain Pi's route-specific tool sets", async (t) => {
     session.setActiveToolsByName(tools);
     assert.deepEqual(session.getActiveToolNames().sort(), [...tools].sort());
   }
-  assert.ok(!session.getAllTools().some(({ name }) => name === "claude"));
+  assert.deepEqual(
+    session
+      .getAllTools()
+      .map(({ name }) => name)
+      .sort(),
+    [...engineeringTools, ...supportTools].sort(),
+  );
 });
 
 test("does not discover user or project configuration", async (t) => {

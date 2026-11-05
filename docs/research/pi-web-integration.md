@@ -28,7 +28,7 @@ Both tools treat returned web material as untrusted and include prompt-injection
 
 `pi-chat` currently:
 
-- explicitly selects only `read`, `grep`, `find`, `ls`, `git-history`, and `claude` ([`src/index.ts`](../../src/index.ts#L70-L74));
+- explicitly selects a read-only repository tool allowlist ([`src/index.ts`](../../src/index.ts#L70-L74));
 - sets `noExtensions: true` and supplies only two inline extension factories ([`src/index.ts`](../../src/index.ts#L85-L95)); and
 - passes that tool allowlist into every session ([`src/index.ts`](../../src/index.ts#L289-L301)).
 
