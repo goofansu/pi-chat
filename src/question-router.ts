@@ -3,14 +3,14 @@ import { choice, TypeSafeClient } from "@typesafe-ai/sdk";
 export type QuestionRoute = "engineering" | "support" | "clarify";
 
 const ROUTE_QUESTION = choice(
-  "Which information source should answer the user's current question? The configured project name is provided in state, but do not assume unexplained product names or acronyms refer to it. Choose engineering only when the question explicitly names that project, explicitly asks about source code or repository artifacts, or is a clear follow-up to an engineering route. Choose clarify when missing context, unknown product names, or unexplained acronyms prevent a reliable choice between engineering and support.",
+  "Select the evidence source for the current question. Explicit mentions of the configured project have already been routed to its codebase. Use project_name and previous_route as context for this remaining question; choose clarify when the evidence source is uncertain.",
   {
     engineering:
-      "The question explicitly concerns the named project or asks about its source code, repository, files, classes, functions, implementation, architecture, debugging, or developer workflow and therefore requires private repository inspection.",
+      "Requires inspecting the configured project's source code, repository artifacts, implementation, architecture, or debugging paths, including a clear follow-up to an engineering question.",
     support:
-      "The question clearly asks about known product usage, documented behavior, configuration, policies, data connections, integrations, how-to guidance, or troubleshooting that should be answered from published support websites.",
+      "Concerns known product usage, documented behavior, configuration, policies, integrations, how-to guidance, or troubleshooting answerable from published support websites.",
     clarify:
-      "The question is ambiguous or relies on unknown product names, acronyms, or missing context. Ask the user what those terms mean and whether the question concerns the named project; do not guess or choose an evidence source yet.",
+      "Missing context, unknown product names, or unexplained acronyms prevent a reliable choice of evidence source. Ask what the terms mean or which product the question concerns.",
   },
 );
 
@@ -36,15 +36,18 @@ interface RoutingResult {
 
 type SystemOneCall = (request: RoutingRequest) => Promise<RoutingResult>;
 
-export interface QuestionRouteDecision {
-  /** Route after applying the conservative confidence policy. */
-  route: QuestionRoute;
-  /** Jev's unmodified selected label. */
-  classification: QuestionRoute;
-  confidence: number;
-  probabilities: Readonly<Record<QuestionRoute, number>>;
-  model: string;
-}
+export type QuestionRouteDecision =
+  | { source: "project-name"; route: "engineering" }
+  | {
+      source: "jev";
+      /** Route after applying the conservative confidence policy. */
+      route: QuestionRoute;
+      /** Jev's unmodified selected label. */
+      classification: QuestionRoute;
+      confidence: number;
+      probabilities: Readonly<Record<QuestionRoute, number>>;
+      model: string;
+    };
 
 export class JevQuestionRouter {
   readonly #systemOne: SystemOneCall;
@@ -74,32 +77,30 @@ export class JevQuestionRouter {
     const currentQuestion = question.trim();
     if (!currentQuestion) throw new Error("question is required for routing");
 
-    const configuredProject = projectName?.trim() || "unknown";
+    const configuredProject = projectName?.trim();
+    if (
+      configuredProject &&
+      currentQuestion.toLowerCase().includes(configuredProject.toLowerCase())
+    ) {
+      return { source: "project-name", route: "engineering" };
+    }
+
     const result = await this.#systemOne({
       state: {
         current_question: currentQuestion,
         previous_route: previousRoute ?? "none",
-        project_name: configuredProject,
+        project_name: configuredProject || "unknown",
       },
       questions: { route: ROUTE_QUESTION },
     });
     const answer = result.answers.route;
-    const explicitlyNamesProject =
-      configuredProject !== "unknown" &&
-      currentQuestion
-        .toLocaleLowerCase()
-        .includes(configuredProject.toLocaleLowerCase());
 
     return {
-      // An explicit project reference breaks a low-confidence tie toward the
-      // repository. Every other low-confidence result asks the user for the
-      // missing context instead of guessing an evidence source.
+      source: "jev",
       route:
-        explicitlyNamesProject && answer.confidence < 0.5
-          ? "engineering"
-          : answer.choice === "clarify" || answer.confidence < 0.5
-            ? "clarify"
-            : answer.choice,
+        answer.choice === "clarify" || answer.confidence < 0.5
+          ? "clarify"
+          : answer.choice,
       classification: answer.choice,
       confidence: answer.confidence,
       probabilities: answer.probabilities,

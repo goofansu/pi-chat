@@ -25,10 +25,10 @@ cp .env.example .env
 | Category | Variable | Description | Required |
 |---|---|---|---|
 | Server | `PI_CHAT_PORT` | Port to listen on | No (default: `4000`) |
-| Pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
+| Pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`). The final directory name is the project name used for routing. | Yes |
 | Pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `claude-code/default:medium`, `github-copilot/claude-sonnet-4.6:high`, or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
 | Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the selected provider; held in memory and never persisted. Not required and ignored for `claude-code`, which uses the CLI login. | Except for `claude-code` |
-| Routing | `PI_CHAT_JEV_API_KEY` | TypeSafe AI API key used by Jev to classify each question as engineering or support | Yes |
+| Routing | `PI_CHAT_JEV_API_KEY` | TypeSafe AI API key used by Jev to route questions that do not mention the project name | Yes |
 | Web search | `PI_CHAT_BRAVE_SEARCH_API_KEY` | Brave Search API key. On exe.dev, an attached `brave` integration is discovered automatically when this is omitted | No |
 | Web fetch | `PI_CHAT_FIRECRAWL_API_KEY` | Firecrawl API key. On exe.dev, an attached `firecrawl` integration is discovered automatically; otherwise Firecrawl's keyless tier is used | No |
 | Web access | `PI_CHAT_WEB_SEARCH_DOMAINS` | Comma-separated hostname allowlist applied to both search and page fetching (for example, `docs.example.com,support.example.com`) | Yes |
@@ -83,25 +83,26 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 
 ## Architecture
 
-Jev routes each message before Pi answers it. Engineering questions are investigated directly with Pi's repository tools; support questions search the configured websites and can fetch current full-page content through Firecrawl. The selected model provider serves every route. With `claude-code`, the Claude CLI supplies model responses only — Pi owns the conversation and executes the tools.
+A project-name mention in the current question selects codebase investigation immediately, without calling Jev. Otherwise Jev routes the question before Pi answers it. Engineering questions use Pi's repository tools; support questions search the configured websites and can fetch current full-page content through Firecrawl. The selected model provider serves every route. With `claude-code`, the Claude CLI supplies model responses only — Pi owns the conversation and executes the tools.
 
 ```
-Slack question ─> Jev (classify)
-                    ├─> engineering ─> Pi ─> read/search codebase ─> reply
-                    ├─> support ─────> Pi ─> search/fetch allowed websites ─> reply
-                    └─> clarify ─────> Pi ─> ask for missing context
+Slack question ─> mentions project name?
+                    ├─> yes ─────────────> engineering ─> read/search codebase
+                    └─> no ─> Jev ──────┬─> engineering ─> read/search codebase
+                                       ├─> support ─────> search/fetch allowed websites
+                                       └─> clarify ─────> ask for missing context
 ```
 
 Key behaviours:
 
-- **Routing is enforced per message.** Jev receives the current project name and selects the evidence source, not the answer audience: every response remains written for support agents. Engineering tools are activated when Jev selects engineering with confidence of at least `0.50`. An explicit mention of the configured project breaks a low-confidence tie toward engineering. Other low-confidence results, unknown product names, unexplained acronyms, and missing context use a tool-free clarification route; the bot asks one concise question instead of guessing. Jev request failures use the support route. The previous evidence route is preserved while clarification is pending.
+- **Routing is enforced per message.** A case-insensitive literal match of the project name in the current question selects engineering, even when the previous route was support or Jev is unavailable. Thread history alone does not trigger this shortcut. Otherwise Jev uses the current question, project name, and previous route to select an evidence source. Engineering or support classifications require confidence of at least `0.50`; lower confidence or a clarification classification uses a tool-free route that asks one concise question. Jev request failures use support. The previous evidence route is preserved while clarification is pending. Every route remains written for support agents.
 - **Pi investigates directly.** It retains the thread's context and traces relevant code paths itself, including state entry, exit, and trigger paths. Answers remain written for support agents, with uncertainty and behaviour-changing caveats preserved.
 - **Tool execution stays in Pi.** The Claude Code provider disables Claude's native tools and returns proposed tool calls to Pi. Engineering turns have only read/search tools; support turns have only domain-allowlisted web tools.
 - **Support references are prompt-guided.** Support answers are instructed to end with a bold `References` heading and a bullet list of unique Markdown links (`- [Source title](URL)`) from configured domains, without repeating links in the answer body.
 
 ## Security
 
-The bot exposes read-only tools. Each user question, the current project name, and the previous route are sent to TypeSafe AI for Jev classification. Engineering turns can use **`read`, `grep`, `find`, `ls`**, while support turns can use only **`web_search`, `web_fetch`**. No shell, write, edit, or delegation tool is exposed. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it.
+The bot exposes read-only tools. Questions mentioning the project name bypass TypeSafe AI. For other questions, the current question, project name, and previous route are sent to TypeSafe AI for Jev classification. Engineering turns can use **`read`, `grep`, `find`, `ls`**, while support turns can use only **`web_search`, `web_fetch`**. No shell, write, edit, or delegation tool is exposed. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it.
 
 Filesystem tools resolve relative paths from `PI_CHAT_PROJECT_DIR`, but Pi's built-in tools are not a filesystem sandbox: absolute paths, parent paths, and symlinks can reach files readable by the server account. The removed delegation tool's path guard does not apply to these tools. Use OS-level isolation and a minimally privileged account when repository-only access is required.
 

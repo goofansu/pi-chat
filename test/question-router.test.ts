@@ -56,6 +56,7 @@ test("classifies a question and preserves Jev decision metadata", async () => {
   const decision = await router.classify("How do I reset my password?");
 
   assert.deepEqual(decision, {
+    source: "jev",
     route: "support",
     classification: "support",
     confidence: 0.96,
@@ -72,6 +73,7 @@ test("routes a confident support classification to support", async () => {
     );
     const decision = await router.classify("How does this work?");
 
+    assert.equal(decision.source, "jev");
     assert.equal(decision.classification, "support");
     assert.equal(decision.route, "support");
   }
@@ -106,6 +108,7 @@ test("honors an explicit clarification classification", async () => {
 
   const decision = await router.classify("How do SC and MB connect?");
 
+  assert.equal(decision.source, "jev");
   assert.equal(decision.classification, "clarify");
   assert.equal(decision.route, "clarify");
 });
@@ -126,6 +129,7 @@ test("routes an ambiguous engineering classification to clarification", async ()
     "example-project",
   );
 
+  assert.equal(decision.source, "jev");
   assert.equal(decision.classification, "engineering");
   assert.equal(decision.route, "clarify");
 });
@@ -146,36 +150,87 @@ test("requires at least 0.50 confidence for the engineering route", async () => 
   }
 });
 
-test("favors engineering for an explicit project question when confidence is low", async () => {
-  for (const classification of ["engineering", "support"] as const) {
-    const router = new JevQuestionRouter(
-      "test-key",
-      fakeClient(classification, undefined, 0.18).systemOne,
-    );
+test("project-name mentions bypass Jev regardless of its possible classification", async () => {
+  for (const classification of ["engineering", "support", "clarify"] as const) {
+    for (const confidence of [0.18, 0.99]) {
+      let calls = 0;
+      const router = new JevQuestionRouter(
+        "test-key",
+        fakeClient(
+          classification,
+          () => {
+            calls += 1;
+          },
+          confidence,
+        ).systemOne,
+      );
 
-    const decision = await router.classify(
-      "How does pi-chat route Slack questions?",
-      undefined,
-      "pi-chat",
-    );
+      const decision = await router.classify(
+        "How do I reset my password in pi-chat?",
+        "support",
+        "pi-chat",
+      );
 
-    assert.equal(decision.route, "engineering");
+      assert.deepEqual(decision, {
+        source: "project-name",
+        route: "engineering",
+      });
+      assert.equal(calls, 0);
+    }
   }
 });
 
-test("keeps a confident support classification about the project on support", async () => {
+test("matches project names literally, case-insensitively, and in multilingual questions", async () => {
+  const router = new JevQuestionRouter("test-key", async () => {
+    assert.fail("Jev must not be called for a project-name mention");
+  });
+  for (const [question, projectName] of [
+    ["What does PI-CHAT do?", " pi-chat "],
+    ["OpenApply的申请状态如何变化？", "openapply"],
+    ["How does C++ handle this?", "C++"],
+    ["What does unknown do?", "unknown"],
+  ]) {
+    assert.deepEqual(await router.classify(question, undefined, projectName), {
+      source: "project-name",
+      route: "engineering",
+    });
+  }
+});
+
+test("project-name mentions still select engineering when Jev is unavailable", async () => {
+  const router = new JevQuestionRouter("test-key", async () => {
+    throw new Error("Jev unavailable");
+  });
+  assert.equal(
+    (await router.classify("How does pi-chat work?", undefined, "pi-chat"))
+      .route,
+    "engineering",
+  );
+  await assert.rejects(
+    () => router.classify("How do I reset my password?", undefined, "pi-chat"),
+    /Jev unavailable/,
+  );
+});
+
+test("uses Jev when there is no configured project name", async () => {
+  let calls = 0;
   const router = new JevQuestionRouter(
     "test-key",
-    fakeClient("support", undefined, 0.8).systemOne,
+    fakeClient("support", (request) => {
+      calls += 1;
+      assert.equal(request.state.project_name, "unknown");
+    }).systemOne,
   );
-
-  const decision = await router.classify(
-    "How do I reset my password in pi-chat?",
-    undefined,
-    "pi-chat",
-  );
-
-  assert.equal(decision.route, "support");
+  for (const projectName of [undefined, "", "   "]) {
+    const decision = await router.classify(
+      "An unknown product?",
+      undefined,
+      projectName,
+    );
+    assert.equal(decision.source, "jev");
+    assert.equal(decision.route, "support");
+  }
+  assert.equal(calls, 3);
 });
 
 test("keeps engineering classifications on the codebase", async () => {
@@ -197,7 +252,12 @@ test("provides the previous route as context for follow-up questions", async () 
     }).systemOne,
   );
 
-  await router.classify("What happens on retry?", "engineering", "pi-chat");
+  const decision = await router.classify(
+    "What happens on retry?",
+    "engineering",
+    "pi-chat",
+  );
+  assert.equal(decision.source, "jev");
   assert.deepEqual(state, {
     current_question: "What happens on retry?",
     previous_route: "engineering",

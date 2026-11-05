@@ -143,23 +143,36 @@ test("the application injects project provider services into Pi sessions", async
   assert.match(source, /resourceLoader: loader/);
 });
 
-test("the application prompt investigates directly without Claude delegation", async () => {
+test("the application prompt matches routing precedence and available tools", async () => {
   const source = await readFile(
     new URL("../src/index.ts", import.meta.url),
     "utf8",
   );
   assert.doesNotMatch(source, /claudeExtension|findClaudeBinary|"claude"/);
-  assert.match(source, /Investigate the codebase directly/);
+  assert.match(
+    source,
+    /mention of the configured project name selects engineering immediately, without calling Jev/,
+  );
+  assert.match(
+    source,
+    /Otherwise, Jev selects engineering, support, or clarification/,
+  );
+  assert.match(source, /Engineering: investigate the codebase directly/);
+  assert.match(source, /Use ls .* find .* grep/);
+  assert.match(source, /Use read to inspect/);
+  assert.match(source, /Use web_search to discover/);
+  assert.match(source, /Use web_fetch on a known allowed URL/);
   assert.match(
     source,
     /paths that enter the state, exit it, and trigger the behaviour/,
   );
+  assert.match(source, /Base the answer on the project evidence you inspected/);
+  assert.match(source, /Base the answer on returned sources/);
   assert.match(
     source,
-    /Base engineering answers only on project evidence you inspected/,
+    /With no tools active, reply with exactly one concise question/,
   );
-  assert.match(source, /support answers only on the configured websites/);
-  assert.match(source, /Preserve uncertainty in the customer-facing answer/);
+  assert.match(source, /Preserve uncertainty and behaviour-changing/);
   assert.match(source, /\*\*References\*\*/);
 });
 

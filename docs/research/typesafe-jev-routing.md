@@ -4,7 +4,7 @@ _Date: 2026-09-28_
 
 _Codebase baseline: `3ba83fa939c0a015d6d652d039efdb75c85c73a2`, including the current uncommitted working tree. No application code was changed for this research._
 
-> Historical research: routing thresholds and delegation details below describe that baseline. The current implementation uses direct Pi repository tools and optionally the `pi-claude-code` model provider, not a delegated Claude investigator. See [README](../../README.md#architecture) for current routing and security guarantees.
+> Historical research: routing thresholds and delegation details below describe that baseline. The current implementation routes project-name mentions directly to codebase investigation and calls Jev only for other questions. It uses Pi repository tools and optionally the `pi-claude-code` model provider, not a delegated Claude investigator. See [README](../../README.md#architecture) for current routing and security guarantees.
 
 ## Recommendation
 
