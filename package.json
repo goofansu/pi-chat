@@ -12,7 +12,7 @@
     "prepare": "node .husky/install.mjs"
   },
   "dependencies": {
-    "@chat-adapter/slack": "^4.41.1",
+    "@chat-adapter/slack": "^4.43.0",
     "@chat-adapter/state-pg": "4.43.0",
     "@earendil-works/pi-ai": "^1.5.0",
     "@earendil-works/pi-claude-code": "git+https://github.com/earendil-works/pi-claude-code.git#47f9e2bb408f8b5c351edf95f7b756bc5c8f45cf",
