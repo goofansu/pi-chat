@@ -4,6 +4,8 @@ _Date: 2026-09-28_
 
 _Codebase baseline inspected: `3ba83fa939c0a015d6d652d039efdb75c85c73a2`. Relative source paths and line references describe that baseline._
 
+> Implementation update: web search and fetch are now integrated with route-specific tool sets and a required domain allowlist. Engineering investigations use Pi's repository tools directly; `pi-claude-code` is an optional model provider, not a delegation tool. Delegation-specific prompt and environment-filter recommendations below are historical. See [README](../../README.md#security) for current guarantees.
+
 ## Conclusion
 
 Integration is feasible, but it is not a drop-in `pi install` operation for this application. `pi-chat` deliberately disables discovered extensions and supplies an explicit tool allowlist, so it must load the package's TypeScript extension files through `DefaultResourceLoader.additionalExtensionPaths` and add `web_search` (and optionally `web_fetch`) to its `tools` list. A smoke test against the published tarball and this repository's Pi 0.87 dependencies successfully loaded `web_search` this way.
@@ -82,7 +84,7 @@ For policy-grade enforcement, also inspect returned `details.sources` and reject
 
 The package can discover attached exe.dev integrations through `reflection.int.exe.xyz/integrations`, caching either the credential-injecting Brave/Firecrawl endpoint or the public endpoint ([published resolver](https://github.com/goofansu/pi-web/blob/19eeea4a84d5bcaba0eaceb9ad3e4ec73a7c6391/extensions/exe-integration.ts#L1-L58)). The published search extension otherwise reads `BRAVE_SEARCH_API_KEY`; fetch reads `FIRECRAWL_API_KEY` ([search](https://github.com/goofansu/pi-web/blob/19eeea4a84d5bcaba0eaceb9ad3e4ec73a7c6391/extensions/web-search.ts#L505-L527), [fetch](https://github.com/goofansu/pi-web/blob/19eeea4a84d5bcaba0eaceb9ad3e4ec73a7c6391/extensions/web-fetch.ts#L307-L326)).
 
-Prefer attached exe.dev integrations here because they avoid putting these service keys in the process environment. If direct keys are used, there is a security mismatch to fix: `pi-chat` promises that all application configuration uses the `PI_CHAT_` prefix ([`.env.example`](../../.env.example#L1-L2)), and `delegatedEnv` strips only variables with that prefix before launching Claude ([`src/extensions/claude.ts`](../../src/extensions/claude.ts#L540-L566)). Unprefixed `BRAVE_SEARCH_API_KEY` or `FIRECRAWL_API_KEY` would therefore be inherited by the attacker-influenceable delegated process. Do not ship that arrangement. Either extend the delegation filter for these exact variables and test it, or adapt/vendor the extension so credentials are supplied from `PI_CHAT_*` configuration without becoming ambient child-process environment.
+Prefer attached exe.dev integrations when avoiding service keys in the process environment is important. Direct keys are mapped from `PI_CHAT_BRAVE_SEARCH_API_KEY` and `PI_CHAT_FIRECRAWL_API_KEY` to the package's conventional environment variables. The old delegation-specific environment filter has been removed along with that tool; the Claude Code model provider and CLI are trusted server-side dependencies and use the provider package's environment policy. Do not assume the `PI_CHAT_` prefix prevents child-process inheritance.
 
 ## Version caveat
 
@@ -99,4 +101,4 @@ Proceed in two stages:
 
 The implementation now enables `web_fetch` with exact-host checks before each request and verifies Firecrawl's returned `source_url` after redirects. Both tools share the required `PI_CHAT_WEB_SEARCH_DOMAINS` policy.
 
-This keeps the package largely upstream while making the application's domain policy deterministic and preserving `pi-chat`'s existing secret-isolation model.
+This keeps the package largely upstream while making the application's domain policy deterministic. Current process and filesystem isolation limitations are documented in [Security](../../README.md#security).

@@ -4,6 +4,8 @@ _Date: 2026-09-28_
 
 _Codebase baseline: `3ba83fa939c0a015d6d652d039efdb75c85c73a2`, including the current uncommitted working tree. No application code was changed for this research._
 
+> Historical research: routing thresholds and delegation details below describe that baseline. The current implementation uses direct Pi repository tools and optionally the `pi-claude-code` model provider, not a delegated Claude investigator. See [README](../../README.md#architecture) for current routing and security guarantees.
+
 ## Recommendation
 
 Use the official `@typesafe-ai/sdk` server-side and one **Choice** question with two well-described labels, `engineering` and `support`. Initialize one `TypeSafeClient` at startup with an explicitly supplied, project-prefixed secret (`PI_CHAT_JEV_API_KEY`), call it once per accepted Slack message before creating/prompting a Pi session, and route only when the returned Choice confidence clears a threshold calibrated on representative messages.
@@ -91,7 +93,7 @@ const { choice: route, probabilities, confidence } = result.answers.route;
 
 The client defaults to `https://api.typesafe.ai`, sends `/v1/systemone` with Bearer auth, defaults to `jev-latest`, has a 10-second per-attempt timeout, and retries twice by default. It supports cancellation, custom timeout/retry/fetch, and `GET /v1/models` ([client source](https://github.com/typesafe-ai/typesafe-sdk-js/blob/v0.6.0/src/client.ts), [types](https://github.com/typesafe-ai/typesafe-sdk-js/blob/v0.6.0/src/types.ts), [model resource](https://github.com/typesafe-ai/typesafe-sdk-js/blob/v0.6.0/src/resources/models.ts)). Version `0.6.0` is pinned in this working tree's `package.json` and lockfile. `src/question-router.ts` wraps it, and `src/index.ts` calls the router before creating each Pi session.
 
-Use an explicit `apiKey` rather than exposing the SDK's canonical `TYPESAFE_API_KEY` variable. This repository promises all application secrets use `PI_CHAT_` so `delegatedEnv` removes them before launching Claude (`.env.example`; `src/extensions/claude.ts`). The draft router's `PI_CHAT_JEV_API_KEY` preserves that boundary without copying the secret into an unprefixed process variable.
+Use an explicit `apiKey` rather than exposing the SDK's canonical `TYPESAFE_API_KEY` variable. The router uses `PI_CHAT_JEV_API_KEY` without copying it into an unprefixed process variable. The original delegation environment filter has since been removed; the prefix is an application configuration convention, not a child-process isolation guarantee. See [Security](../../README.md#security).
 
 ### Also available: Vercel AI SDK provider
 
@@ -114,7 +116,7 @@ Do not blindly classify only the assembled `prompt`: for new threads it embeds n
 
 Also settle what the labels mean before rollout. The draft criteria classify by **information source** (repository versus published support sites), while the requested names suggest **audience/answer style** (engineer versus support agent). Those differ for questions about user-visible behavior that still require repository verification. Encode one meaning in mutually exclusive criteria and make downstream routing match it.
 
-The implementation now selects disjoint active tool sets per turn: engineering exposes repository/Claude tools, while support exposes only web search. The system prompt also gives engineering and support answers distinct response policies.
+The implementation selects disjoint active tool sets per turn: engineering exposes repository tools, while support exposes web search and fetch. Both routes use the same support-agent response style; clarification has no tools and asks one question.
 
 ## Rollout decisions
 

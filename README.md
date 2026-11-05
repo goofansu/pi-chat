@@ -8,7 +8,7 @@ Mention the bot in any channel to start a thread. Follow-up messages in that thr
 
 - Node.js >=22.19.0
 - A PostgreSQL database (used by the Chat SDK for thread subscriptions and conversation history)
-- The Claude CLI logged in on the host. The delegated session reuses that login, so no separate API key is needed; the CLI itself is installed automatically as a platform-specific dependency.
+- For `claude-code` models only: the Claude Code CLI installed separately and logged in on the host (`npm install -g @anthropic-ai/claude-code`, then `claude auth login`). Other providers do not require Claude Code.
 
 ## Install
 
@@ -26,8 +26,8 @@ cp .env.example .env
 |---|---|---|---|
 | Server | `PI_CHAT_PORT` | Port to listen on | No (default: `4000`) |
 | Pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`) | Yes |
-| Pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `github-copilot/claude-sonnet-4.6:high` or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
-| Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the provider selected by `PI_CHAT_MODEL`; held in memory and never persisted | Yes |
+| Pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `claude-code/default:medium`, `github-copilot/claude-sonnet-4.6:high`, or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
+| Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the selected provider; held in memory and never persisted. Not required and ignored for `claude-code`, which uses the CLI login. | Except for `claude-code` |
 | Routing | `PI_CHAT_JEV_API_KEY` | TypeSafe AI API key used by Jev to classify each question as engineering or support | Yes |
 | Web search | `PI_CHAT_BRAVE_SEARCH_API_KEY` | Brave Search API key. On exe.dev, an attached `brave` integration is discovered automatically when this is omitted | No |
 | Web fetch | `PI_CHAT_FIRECRAWL_API_KEY` | Firecrawl API key. On exe.dev, an attached `firecrawl` integration is discovered automatically; otherwise Firecrawl's keyless tier is used | No |
@@ -35,15 +35,23 @@ cp .env.example .env
 | Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
 | Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
 | State adapters | `PI_CHAT_POSTGRES_URL` | PostgreSQL connection URL | Yes |
-| Extensions | `PI_CHAT_CLAUDE_MODEL` | Model for the `claude` tool — an alias (`sonnet`, `opus`, `haiku`) or a full model id (default: `sonnet`) | No |
-| Extensions | `PI_CHAT_CLAUDE_EFFORT` | Reasoning depth for a delegation: `low`, `medium`, `high`, `xhigh`, `max` (default: `medium`) | No |
-| Extensions | `PI_CHAT_CLAUDE_MAX_TURNS` | Turn ceiling for one Claude delegation (default: `30`) | No |
-| Extensions | `PI_CHAT_CLAUDE_MAX_BUDGET_USD` | Cost ceiling for one Claude delegation, in USD; `off` removes it (default: `5`) | No |
-| Extensions | `PI_CHAT_CLAUDE_TIMEOUT_MS` | Wall-clock ceiling for one Claude delegation (default: `600000`) | No |
 
-Every variable carries the `PI_CHAT_` prefix, including the Slack and PostgreSQL ones the adapters would otherwise read unprefixed. That is what keeps this project's configuration out of the environment handed to the delegated Claude session — see Security.
+Application configuration uses the `PI_CHAT_` prefix, including the Slack and PostgreSQL variables the adapters would otherwise read unprefixed.
 
-`PI_CHAT_MODEL` must identify a built-in Pi model. Provider authentication and the model registry are isolated from user-scoped Pi configuration: the server uses only `PI_CHAT_PROVIDER_API_KEY` and does not read `~/.pi/agent/auth.json` or `~/.pi/agent/models.json`.
+`PI_CHAT_MODEL` accepts built-in Pi models and models from [`@earendil-works/pi-claude-code`](https://github.com/earendil-works/pi-claude-code). The latter is installed from a pinned Git revision and loaded through Pi's extension loader before model selection. For example:
+
+```dotenv
+PI_CHAT_MODEL=claude-code/default:medium
+PI_CHAT_PROVIDER_API_KEY=
+```
+
+`default` follows the Claude CLI's recommended model. The pinned package also exposes `claude-opus-5-5`, `claude-fable-5-1`, `claude-sonnet-5`, and `claude-haiku-4-5-20251001` under the `claude-code` provider. Startup uses the package's bundled catalog without network model discovery.
+
+Claude Code handles its own authentication; the server does not import or persist its credentials. The package optionally reads `PI_CLAUDE_CODE_COMMAND` to select a CLI executable and `PI_CLAUDE_CODE_CONFIG_DIR` to select a Claude configuration directory. This provider is experimental and subject to Claude subscription limits and billing policies; see its README before deploying.
+
+All other providers still require `PI_CHAT_PROVIDER_API_KEY`. Pi credentials, models, and settings remain in memory: the server does not load user-scoped `auth.json`, `models.json`, or `settings.json`, or discover project/user extensions, skills, prompts, or context files.
+
+The former `claude` delegation tool and its `PI_CHAT_CLAUDE_*` settings have been removed. Model and reasoning selection now use `PI_CHAT_MODEL` for the whole conversation; the old delegation-specific turn, cost, and timeout limits no longer apply.
 
 ## Usage
 
@@ -75,28 +83,28 @@ The bot replies in the thread. Conversation history and thread subscriptions per
 
 ## Architecture
 
-Jev routes each message before Pi answers it. Engineering questions are investigated against the codebase through `claude`; support questions search the configured websites and can fetch current full-page content through Firecrawl.
+Jev routes each message before Pi answers it. Engineering questions are investigated directly with Pi's repository tools; support questions search the configured websites and can fetch current full-page content through Firecrawl. The selected model provider serves every route. With `claude-code`, the Claude CLI supplies model responses only — Pi owns the conversation and executes the tools.
 
 ```
 Slack question ─> Jev (classify)
-                    ├─> engineering ─> Pi ─> Claude/codebase ─> reply
+                    ├─> engineering ─> Pi ─> read/search codebase + git history ─> reply
                     ├─> support ─────> Pi ─> search/fetch allowed websites ─> reply
                     └─> clarify ─────> Pi ─> ask for missing context
 ```
 
-Three consequences worth knowing:
+Key behaviours:
 
 - **Routing is enforced per message.** Jev receives the current project name and selects the evidence source, not the answer audience: every response remains written for support agents. Engineering tools are activated when Jev selects engineering with confidence of at least `0.50`. An explicit mention of the configured project breaks a low-confidence tie toward engineering. Other low-confidence results, unknown product names, unexplained acronyms, and missing context use a tool-free clarification route; the bot asks one concise question instead of guessing. Jev request failures use the support route. The previous evidence route is preserved while clarification is pending.
-- **Each engineering delegation is one-shot.** Claude starts a fresh session every call, with no memory of the thread or of its own previous answers. Pi holds the thread's context and must restate anything relevant in each new prompt.
-- **Claude sees only project files.** It has no shell, git history, or network. Pi can inspect history separately through `git-history`; support answers search and fetch only the configured websites.
+- **Pi investigates directly.** It retains the thread's context and traces relevant code paths itself, including state entry, exit, and trigger paths. Answers remain written for support agents, with uncertainty and behaviour-changing caveats preserved.
+- **Tool execution stays in Pi.** The Claude Code provider disables Claude's native tools and returns proposed tool calls to Pi. Engineering turns have read/search tools and `git-history`; support turns have only domain-allowlisted web tools.
 - **Support references are prompt-guided.** Support answers are instructed to end with a bold `References` heading and a bullet list of unique Markdown links (`- [Source title](URL)`) from configured domains, without repeating links in the answer body.
 
 ## Security
 
-Everything the bot can do is read-only. Each user question, the current project name, and the previous route are sent to TypeSafe AI for Jev classification. Filesystem tools are scoped to `PI_CHAT_PROJECT_DIR`; engineering turns can use **`read`, `grep`, `find`, `ls`, `git-history`, `claude`**, while support turns can use only **`web_search`, `web_fetch`**. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it. The delegated Claude session has `Read`, `Grep`, and `Glob` and nothing else — no shell, no writes, no network, no subagents or scheduled agents. Every filesystem path it names is resolved, symlinks included, and refused if it lands outside the project directory.
+The bot exposes read-only tools. Each user question, the current project name, and the previous route are sent to TypeSafe AI for Jev classification. Engineering turns can use **`read`, `grep`, `find`, `ls`, `git-history`**, while support turns can use only **`web_search`, `web_fetch`**. No shell, write, edit, or delegation tool is exposed. Web access is provided by [`@goofansu/pi-web`](https://github.com/goofansu/pi-web) through Brave LLM Context and Firecrawl. `PI_CHAT_WEB_SEARCH_DOMAINS` is enforced for search requests, fetch requests, returned search sources, and fetch redirects; model-supplied arguments cannot override it.
+
+Filesystem tools resolve relative paths from `PI_CHAT_PROJECT_DIR`, but Pi's built-in tools are not a filesystem sandbox: absolute paths, parent paths, and symlinks can reach files readable by the server account. The removed delegation tool's path guard does not apply to these tools. Use OS-level isolation and a minimally privileged account when repository-only access is required.
 
 `git-history` always runs from `PI_CHAT_PROJECT_DIR` and accepts only `log` and `show`. Other subcommands, shell syntax, and output-to-file options are rejected before Git starts.
 
-The delegated session inherits nothing it should not: no `settings.json`, `CLAUDE.md`, MCP servers, hooks, skills, or plugins from disk, and no transcript left behind. Its environment is the server's minus every `PI_CHAT_*` variable, so a configuration value added later is withheld by construction rather than by remembering to list it. Each delegation is bounded by turns, cost, and wall clock, so a runaway or stalled investigation ends on its own.
-
-See `src/extensions/claude.ts` for how each of those is enforced and why.
+When using `claude-code`, treat the provider package and CLI as trusted server-side code. The CLI inherits the provider's environment policy, not the removed delegation tool's `PI_CHAT_*` filter. The package disables native tool execution and manages its own transport processes; Pi sessions are disposed after each Slack turn to release provider resources. Thread history remains in Pi's persisted session.

@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
+import {
+  createAgentSession,
+  SessionManager,
+} from "@earendil-works/pi-coding-agent";
 
+import gitHistoryExtension from "../src/extensions/git-history.ts";
+import { webSearchPolicyExtension } from "../src/extensions/web-search-policy.ts";
+import { parsePiChatModel } from "../src/model-ref.ts";
 import { createProjectProviderServices } from "../src/provider-config.ts";
 
 test("rejects a missing project provider API key", () => {
@@ -130,4 +140,173 @@ test("the application injects project provider services into Pi sessions", async
     );
   }
   assert.doesNotMatch(source, /ModelRuntime\.create\(/);
+  assert.match(source, /settingsManager,/);
+  assert.match(source, /resourceLoader: loader/);
+});
+
+test("the application prompt investigates directly without Claude delegation", async () => {
+  const source = await readFile(
+    new URL("../src/index.ts", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /claudeExtension|findClaudeBinary|"claude"/);
+  assert.match(source, /Investigate the codebase directly/);
+  assert.match(
+    source,
+    /paths that enter the state, exit it, and trigger the behaviour/,
+  );
+  assert.match(
+    source,
+    /Base engineering answers only on project evidence you inspected/,
+  );
+  assert.match(source, /support answers only on the configured websites/);
+  assert.match(source, /Preserve uncertainty in the customer-facing answer/);
+  assert.match(source, /\*\*References\*\*/);
+});
+
+test("loads Claude Code models without a project key or network discovery", async (t) => {
+  const previousCommand = process.env.PI_CLAUDE_CODE_COMMAND;
+  // Do not use the developer's real CLI or login during tests.
+  process.env.PI_CLAUDE_CODE_COMMAND = join(tmpdir(), "pi-chat-no-such-claude");
+  t.after(() => {
+    if (previousCommand === undefined)
+      delete process.env.PI_CLAUDE_CODE_COMMAND;
+    else process.env.PI_CLAUDE_CODE_COMMAND = previousCommand;
+  });
+  const fetch = t.mock.method(globalThis, "fetch", async () => {
+    throw new Error("Model loading must not use the network");
+  });
+
+  for (const apiKey of [undefined, "", " \t\n", "unused-project-key"]) {
+    await t.test(`project key: ${JSON.stringify(apiKey)}`, async () => {
+      const { modelRuntime, credentialStore, resourceLoader } =
+        await createProjectProviderServices("claude-code", apiKey);
+      assert.deepEqual(modelRuntime.getRegisteredProviderIds(), [
+        "claude-code",
+      ]);
+      assert.ok(modelRuntime.getRegisteredNativeProvider("claude-code"));
+      const model = modelRuntime.getModel("claude-code", "default");
+      assert.ok(model);
+      assert.equal(model.provider, "claude-code");
+      assert.equal(model.api, "claude-code-stream-json");
+      assert.ok(modelRuntime.getModel("claude-code", "claude-sonnet-5"));
+      assert.equal(
+        modelRuntime.getModel("claude-code", "not-a-model"),
+        undefined,
+      );
+      assert.ok(modelRuntime.getProvider("anthropic"));
+      assert.deepEqual(resourceLoader.getExtensions().errors, []);
+      assert.equal(resourceLoader.getExtensions().extensions.length, 1);
+      assert.deepEqual(await credentialStore.list(), []);
+      assert.equal(
+        (await modelRuntime.getAuth("claude-code"))?.source,
+        "Claude Code CLI",
+      );
+      assert.notEqual(
+        modelRuntime.getProviderAuthStatus("claude-code").source,
+        "runtime",
+      );
+    });
+  }
+  assert.equal(fetch.mock.callCount(), 0);
+});
+
+test("Claude Code sessions retain Pi's route-specific tool sets", async (t) => {
+  const previousCommand = process.env.PI_CLAUDE_CODE_COMMAND;
+  process.env.PI_CLAUDE_CODE_COMMAND = join(tmpdir(), "pi-chat-no-such-claude");
+  t.after(() => {
+    if (previousCommand === undefined)
+      delete process.env.PI_CLAUDE_CODE_COMMAND;
+    else process.env.PI_CLAUDE_CODE_COMMAND = previousCommand;
+  });
+  const parsed = parsePiChatModel("claude-code/default:high");
+  const services = await createProjectProviderServices(
+    parsed.provider,
+    undefined,
+    {
+      cwd: process.cwd(),
+      resourceLoaderOptions: {
+        additionalExtensionPaths: [
+          fileURLToPath(
+            import.meta.resolve("@goofansu/pi-web/extensions/web-search.ts"),
+          ),
+          fileURLToPath(
+            import.meta.resolve("@goofansu/pi-web/extensions/web-fetch.ts"),
+          ),
+        ],
+        extensionFactories: [
+          gitHistoryExtension,
+          webSearchPolicyExtension(["docs.example.com"]),
+        ],
+      },
+    },
+  );
+  const model = services.modelRuntime.getModel(parsed.provider, parsed.modelId);
+  assert.ok(
+    model,
+    "provider models must be registered before session creation",
+  );
+  const engineeringTools = ["read", "grep", "find", "ls", "git-history"];
+  const supportTools = ["web_search", "web_fetch"];
+  const { session } = await createAgentSession({
+    ...services,
+    model,
+    thinkingLevel: parsed.thinkingLevel,
+    sessionManager: SessionManager.inMemory(),
+    tools: [...engineeringTools, ...supportTools],
+  });
+  t.after(() => session.dispose());
+  assert.equal(session.model?.provider, "claude-code");
+  assert.equal(session.model?.id, "default");
+  assert.equal(session.thinkingLevel, "high");
+  for (const tools of [engineeringTools, supportTools, []]) {
+    session.setActiveToolsByName(tools);
+    assert.deepEqual(session.getActiveToolNames().sort(), [...tools].sort());
+  }
+  assert.ok(!session.getAllTools().some(({ name }) => name === "claude"));
+});
+
+test("does not discover user or project configuration", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "pi-chat-provider-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const agentDir = join(directory, "agent");
+  const cwd = join(directory, "project");
+  for (const configDir of [agentDir, join(cwd, ".pi")]) {
+    await mkdir(join(configDir, "extensions"), { recursive: true });
+    await writeFile(join(configDir, "auth.json"), "not valid JSON");
+    await writeFile(join(configDir, "models.json"), "not valid JSON");
+    await writeFile(join(configDir, "settings.json"), "not valid JSON");
+    await writeFile(
+      join(configDir, "extensions", "bad.ts"),
+      'throw new Error("must not load");',
+    );
+  }
+  const { resourceLoader, settingsManager, modelRuntime } =
+    await createProjectProviderServices("anthropic", "project-secret", {
+      cwd,
+      agentDir,
+    });
+  assert.deepEqual(resourceLoader.getExtensions().extensions, []);
+  assert.deepEqual(resourceLoader.getAgentsFiles().agentsFiles, []);
+  assert.deepEqual(settingsManager.drainErrors(), []);
+  assert.deepEqual(settingsManager.getGlobalSettings(), {});
+  assert.deepEqual(settingsManager.getProjectSettings(), {});
+  assert.equal(modelRuntime.getError(), undefined);
+  assert.equal(modelRuntime.getModel("claude-code", "default"), undefined);
+});
+
+test("fails startup when an explicitly configured extension fails to load", async () => {
+  await assert.rejects(
+    createProjectProviderServices("anthropic", "project-secret", {
+      cwd: process.cwd(),
+      resourceLoaderOptions: {
+        extensionFactories: [
+          () => {
+            throw new Error("test extension failed");
+          },
+        ],
+      },
+    }),
+    /Failed to load Pi extensions: .*test extension failed/,
+  );
 });
