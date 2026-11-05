@@ -12,8 +12,8 @@ importers:
   .:
     dependencies:
       '@chat-adapter/slack':
-        specifier: ^4.41.1
-        version: 4.41.1(debug@4.4.3)(zod@4.6.7)
+        specifier: ^4.43.0
+        version: 4.43.0(debug@4.4.3)(zod@4.6.7)
       '@chat-adapter/state-pg':
         specifier: 4.43.0
         version: 4.43.0(zod@4.6.7)
@@ -226,12 +226,12 @@ packages:
     resolution: {integrity: sha512-JRH40HwYIXdIiwSc/gNw65q5T/gaf691n4//2YOhjRE4YO9KzSFJ/N+RrTD3M8iGz2jI4Jg92wb6OAqfYsAkTQ==}
     engines: {node: '>=20'}
 
-  '@chat-adapter/shared@4.41.1':
-    resolution: {integrity: sha512-ia1Ctd4mclpiNd+sYUc/fo9RXIFoBr/Z0JFFk3hue1XiFXPTJClG/BHpS+243UmSkeE5JORjY4MmW+szdhhFWw==}
+  '@chat-adapter/shared@4.43.0':
+    resolution: {integrity: sha512-uclU9sQLQa5f9pN9xpCHkMC7eypnIvXnZRnpgdAzltL2d0PhrsJlSPkijmc4Q4FzSfof4kh+gE6yAMFp/tNsQQ==}
     engines: {node: '>=20'}
 
-  '@chat-adapter/slack@4.41.1':
-    resolution: {integrity: sha512-aq8sETBNrlrD13tB0pwMNf4jILRbrnc9TiDRP/Z9rVDejqDEImOrHVZgpX8ZHIJlT9cPXmJidgUPIE5iz45HLA==}
+  '@chat-adapter/slack@4.43.0':
+    resolution: {integrity: sha512-OFu6YURQNTKAqijtMddRRT12duYtj3g8j5xaNq2w846+zYnx+Ywjmjoi9iLA51SCoO8zo1nJb34LRTYUbhjkDw==}
     engines: {node: '>=20'}
 
   '@chat-adapter/state-pg@4.43.0':
@@ -1775,21 +1775,21 @@ snapshots:
 
   '@chat-adapter/catalog@4.43.0': {}
 
-  '@chat-adapter/shared@4.41.1(zod@4.6.7)':
+  '@chat-adapter/shared@4.43.0(zod@4.6.7)':
     dependencies:
-      chat: 4.41.1(zod@4.6.7)
+      chat: 4.43.0(zod@4.6.7)
     transitivePeerDependencies:
       - ai
       - supports-color
       - workflow
       - zod
 
-  '@chat-adapter/slack@4.41.1(debug@4.4.3)(zod@4.6.7)':
+  '@chat-adapter/slack@4.43.0(debug@4.4.3)(zod@4.6.7)':
     dependencies:
-      '@chat-adapter/shared': 4.41.1(zod@4.6.7)
+      '@chat-adapter/shared': 4.43.0(zod@4.6.7)
       '@slack/socket-mode': 2.0.7(debug@4.4.3)
       '@slack/web-api': 7.19.0(debug@4.4.3)
-      chat: 4.41.1(zod@4.6.7)
+      chat: 4.43.0(zod@4.6.7)
     transitivePeerDependencies:
       - ai
       - bufferutil
