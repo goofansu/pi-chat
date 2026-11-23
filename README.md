@@ -22,19 +22,19 @@ Copy the example env file and fill in the values:
 cp .env.example .env
 ```
 
-| Category | Variable | Description | Required |
-|---|---|---|---|
-| Server | `PI_CHAT_PORT` | Port to listen on | No (default: `4000`) |
-| Pi | `PI_CHAT_PROJECT_DIR` | Path to the codebase to query (e.g. `~/work/my-project`). The final directory name is the project name used for routing. | Yes |
-| Pi | `PI_CHAT_MODEL` | Model in `provider/model[:thinking]` format (e.g. `claude-code/default:medium`, `github-copilot/claude-sonnet-4.6:high`, or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes |
-| Pi | `PI_CHAT_PROVIDER_API_KEY` | API key for the selected provider; held in memory and never persisted. Not required and ignored for `claude-code`, which uses the CLI login. | Except for `claude-code` |
-| Routing | `PI_CHAT_JEV_API_KEY` | TypeSafe AI API key used by Jev to route questions that do not mention the project name | Yes |
-| Web search | `PI_CHAT_BRAVE_SEARCH_API_KEY` | Brave Search API key. On exe.dev, an attached `brave` integration is discovered automatically when this is omitted | No |
-| Web fetch | `PI_CHAT_FIRECRAWL_API_KEY` | Firecrawl API key. On exe.dev, an attached `firecrawl` integration is discovered automatically; otherwise Firecrawl's keyless tier is used | No |
-| Web access | `PI_CHAT_WEB_SEARCH_DOMAINS` | Comma-separated hostname allowlist applied to both search and page fetching (for example, `docs.example.com,support.example.com`) | Yes |
-| Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN` | Bot token from **OAuth & Permissions** (`xoxb-...`) | Yes |
-| Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information** | Yes |
-| State adapters | `PI_CHAT_POSTGRES_URL` | PostgreSQL connection URL | Yes |
+| Category          | Variable                       | Description                                                                                                                                                                                                                            | Required                 |
+| ----------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Server            | `PI_CHAT_PORT`                 | Port to listen on                                                                                                                                                                                                                      | No (default: `4000`)     |
+| Pi                | `PI_CHAT_PROJECT_DIR`          | Path to the codebase to query (e.g. `~/work/my-project`). The final directory name is the project name used for routing.                                                                                                               | Yes                      |
+| Pi                | `PI_CHAT_MODEL`                | Model in `provider/model[:thinking]` format (e.g. `claude-code/default:medium`, `github-copilot/claude-sonnet-4.6:high`, or `openrouter/openai/gpt-5.6-luna`; thinking defaults to `medium`). The model id may itself contain slashes. | Yes                      |
+| Pi                | `PI_CHAT_PROVIDER_API_KEY`     | API key for the selected provider; held in memory and never persisted. Not required and ignored for `claude-code`, which uses the CLI login.                                                                                           | Except for `claude-code` |
+| Routing           | `PI_CHAT_JEV_API_KEY`          | TypeSafe AI API key used by Jev to route questions that do not mention the project name                                                                                                                                                | Yes                      |
+| Web search        | `PI_CHAT_BRAVE_SEARCH_API_KEY` | Brave Search API key. On exe.dev, an attached `brave` integration is discovered automatically when this is omitted                                                                                                                     | No                       |
+| Web fetch         | `PI_CHAT_FIRECRAWL_API_KEY`    | Firecrawl API key. On exe.dev, an attached `firecrawl` integration is discovered automatically; otherwise Firecrawl's keyless tier is used                                                                                             | No                       |
+| Web access        | `PI_CHAT_WEB_SEARCH_DOMAINS`   | Comma-separated hostname allowlist applied to both search and page fetching (for example, `docs.example.com,support.example.com`)                                                                                                      | Yes                      |
+| Platform adapters | `PI_CHAT_SLACK_BOT_TOKEN`      | Bot token from **OAuth & Permissions** (`xoxb-...`)                                                                                                                                                                                    | Yes                      |
+| Platform adapters | `PI_CHAT_SLACK_SIGNING_SECRET` | Signing secret from **Basic Information**                                                                                                                                                                                              | Yes                      |
+| State adapters    | `PI_CHAT_POSTGRES_URL`         | PostgreSQL connection URL                                                                                                                                                                                                              | Yes                      |
 
 Application configuration uses the `PI_CHAT_` prefix, including the Slack and PostgreSQL variables the adapters would otherwise read unprefixed.
 

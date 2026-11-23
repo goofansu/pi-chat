@@ -9,6 +9,7 @@ import {
   SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
+import { connectDatabase } from "./database-startup.ts";
 import { projectCwd } from "./extensions/utils.ts";
 import {
   parseWebSearchDomains,
@@ -170,7 +171,7 @@ const state = createPostgresState({
   url: PI_CHAT_POSTGRES_URL,
   keyPrefix: "pi-chat",
 });
-await state.connect();
+await connectDatabase(state);
 
 function questionRouteKey(threadId: string): string {
   return `question-route:${threadId}`;
