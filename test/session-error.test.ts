@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import {
   handleSessionPrompt,
   recoverSessionError,
@@ -9,9 +8,7 @@ import {
 } from "../src/session-error.ts";
 
 test("returns a generic Slack reply without exposing exception details", () => {
-  const error = new Error(
-    "No API key found for deepseek. Secret path: /tmp/key",
-  );
+  const error = new Error("No API key found for deepseek. Secret path: /tmp/key");
 
   const reply = sessionErrorReply(error);
 
@@ -20,10 +17,7 @@ test("returns a generic Slack reply without exposing exception details", () => {
 });
 
 test("builds the state key for a thread session", () => {
-  assert.equal(
-    sessionPathKey("slack:C0123:1234.5678"),
-    "pi:session:slack:C0123:1234.5678",
-  );
+  assert.equal(sessionPathKey("slack:C0123:1234.5678"), "pi:session:slack:C0123:1234.5678");
 });
 
 test("invalidates the session before updating Slack after an error", async () => {

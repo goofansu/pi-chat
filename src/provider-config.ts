@@ -1,9 +1,5 @@
 import { fileURLToPath } from "node:url";
-
-import {
-  InMemoryCredentialStore,
-  InMemoryModelsStore,
-} from "@earendil-works/pi-ai";
+import { InMemoryCredentialStore, InMemoryModelsStore } from "@earendil-works/pi-ai";
 import {
   type AgentSessionServices,
   type CreateAgentSessionServicesOptions,
@@ -65,25 +61,15 @@ async function createInMemoryProviderServices(
       noContextFiles: true,
       additionalExtensionPaths: [
         ...(provider === "claude-code"
-          ? [
-              fileURLToPath(
-                import.meta.resolve(
-                  "@earendil-works/pi-claude-code/src/index.ts",
-                ),
-              ),
-            ]
+          ? [fileURLToPath(import.meta.resolve("@earendil-works/pi-claude-code/src/index.ts"))]
           : []),
         ...(options.resourceLoaderOptions?.additionalExtensionPaths ?? []),
       ],
     },
   });
   const errors = [
-    ...services.resourceLoader
-      .getExtensions()
-      .errors.map(({ path, error }) => `${path}: ${error}`),
-    ...services.diagnostics
-      .filter(({ type }) => type === "error")
-      .map(({ message }) => message),
+    ...services.resourceLoader.getExtensions().errors.map(({ path, error }) => `${path}: ${error}`),
+    ...services.diagnostics.filter(({ type }) => type === "error").map(({ message }) => message),
   ];
   if (errors.length > 0) {
     throw new Error(`Failed to load Pi extensions: ${errors.join("; ")}`);

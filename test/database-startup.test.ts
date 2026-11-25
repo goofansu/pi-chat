@@ -38,9 +38,7 @@ test("retries an unavailable boot database and stops once connected", async () =
   assert.equal(calls, 7);
   assert.deepEqual(delays, [2000, 4000, 8000, 16000, 30000, 30000]);
   assert.equal(messages.length, 6);
-  assert.ok(
-    messages.every((message) => message.includes("Waiting for database")),
-  );
+  assert.ok(messages.every((message) => message.includes("Waiting for database")));
   assert.ok(messages.every((message) => !message.includes("secret")));
 });
 

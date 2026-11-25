@@ -53,6 +53,11 @@ All other providers still require `PI_CHAT_PROVIDER_API_KEY`. Pi credentials, mo
 
 The former `claude` delegation tool and its `PI_CHAT_CLAUDE_*` settings have been removed. Model and reasoning selection now use `PI_CHAT_MODEL` for the whole conversation; the old delegation-specific turn, cost, and timeout limits no longer apply.
 
+## Development checks
+
+Run `pnpm lint` for Oxlint and Oxfmt's formatting check, or `pnpm lint:fix` to apply fixes.
+Run `pnpm typecheck` and `pnpm test` for TypeScript and tests.
+
 ## Usage
 
 Start the server:
