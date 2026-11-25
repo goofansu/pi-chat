@@ -7,8 +7,10 @@
     "start": "node --env-file=.env --experimental-strip-types src/index.ts",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint --deny-warnings && oxfmt --check",
+    "lint:fix": "oxlint --fix && oxfmt",
     "prepare": "node .husky/install.mjs"
   },
   "dependencies": {
@@ -25,9 +27,10 @@
     "typebox": "^1.4.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.6",
     "@types/node": "^26.6.5",
     "husky": "^9.1.7",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
     "typescript": "^7.0.2"
   }
 }

@@ -9,22 +9,14 @@ import {
 
 test("parses and normalizes a configured domain allowlist", () => {
   assert.deepEqual(
-    parseWebSearchDomains(
-      " docs.example.com, HTTPS://Support.Example.com/ ,docs.example.com",
-    ),
+    parseWebSearchDomains(" docs.example.com, HTTPS://Support.Example.com/ ,docs.example.com"),
     ["docs.example.com", "support.example.com"],
   );
 });
 
 test("requires a configured domain allowlist", () => {
-  assert.throws(
-    () => parseWebSearchDomains(undefined),
-    /PI_CHAT_WEB_SEARCH_DOMAINS is required/,
-  );
-  assert.throws(
-    () => parseWebSearchDomains("  "),
-    /PI_CHAT_WEB_SEARCH_DOMAINS is required/,
-  );
+  assert.throws(() => parseWebSearchDomains(undefined), /PI_CHAT_WEB_SEARCH_DOMAINS is required/);
+  assert.throws(() => parseWebSearchDomains("  "), /PI_CHAT_WEB_SEARCH_DOMAINS is required/);
 });
 
 test("rejects domain entries that cannot be represented as Brave site rules", () => {

@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  JevQuestionRouter,
-  type QuestionRoute,
-} from "../src/question-router.ts";
+import { JevQuestionRouter, type QuestionRoute } from "../src/question-router.ts";
 
 interface RoutingRequest {
   state: {
@@ -19,8 +16,7 @@ function fakeClient(
   inspect?: (request: RoutingRequest) => void,
   confidence = 0.9,
   probabilities: Readonly<Record<QuestionRoute, number>> = {
-    engineering:
-      route === "engineering" ? 0.95 : route === "clarify" ? 0.025 : 0.05,
+    engineering: route === "engineering" ? 0.95 : route === "clarify" ? 0.025 : 0.05,
     support: route === "support" ? 0.95 : route === "clarify" ? 0.025 : 0.05,
     clarify: route === "clarify" ? 0.95 : 0,
   },
@@ -90,21 +86,14 @@ test("asks for clarification on any low-confidence classification", async () => 
       }).systemOne,
     );
 
-    const decision = await router.classify(
-      "sc和mb的数据如何打通",
-      undefined,
-      "example-project",
-    );
+    const decision = await router.classify("sc和mb的数据如何打通", undefined, "example-project");
 
     assert.equal(decision.route, "clarify");
   }
 });
 
 test("honors an explicit clarification classification", async () => {
-  const router = new JevQuestionRouter(
-    "test-key",
-    fakeClient("clarify", undefined, 0.9).systemOne,
-  );
+  const router = new JevQuestionRouter("test-key", fakeClient("clarify", undefined, 0.9).systemOne);
 
   const decision = await router.classify("How do SC and MB connect?");
 
@@ -123,11 +112,7 @@ test("routes an ambiguous engineering classification to clarification", async ()
     }).systemOne,
   );
 
-  const decision = await router.classify(
-    "sc和mb的数据如何打通",
-    undefined,
-    "example-project",
-  );
+  const decision = await router.classify("sc和mb的数据如何打通", undefined, "example-project");
 
   assert.equal(decision.source, "jev");
   assert.equal(decision.classification, "engineering");
@@ -143,10 +128,7 @@ test("requires at least 0.50 confidence for the engineering route", async () => 
       "test-key",
       fakeClient("engineering", undefined, confidence).systemOne,
     );
-    assert.equal(
-      (await router.classify("Where is retry implemented?")).route,
-      expected,
-    );
+    assert.equal((await router.classify("Where is retry implemented?")).route, expected);
   }
 });
 
@@ -202,8 +184,7 @@ test("project-name mentions still select engineering when Jev is unavailable", a
     throw new Error("Jev unavailable");
   });
   assert.equal(
-    (await router.classify("How does pi-chat work?", undefined, "pi-chat"))
-      .route,
+    (await router.classify("How does pi-chat work?", undefined, "pi-chat")).route,
     "engineering",
   );
   await assert.rejects(
@@ -222,11 +203,7 @@ test("uses Jev when there is no configured project name", async () => {
     }).systemOne,
   );
   for (const projectName of [undefined, "", "   "]) {
-    const decision = await router.classify(
-      "An unknown product?",
-      undefined,
-      projectName,
-    );
+    const decision = await router.classify("An unknown product?", undefined, projectName);
     assert.equal(decision.source, "jev");
     assert.equal(decision.route, "support");
   }
@@ -234,10 +211,7 @@ test("uses Jev when there is no configured project name", async () => {
 });
 
 test("keeps engineering classifications on the codebase", async () => {
-  const router = new JevQuestionRouter(
-    "test-key",
-    fakeClient("engineering").systemOne,
-  );
+  const router = new JevQuestionRouter("test-key", fakeClient("engineering").systemOne);
   const decision = await router.classify("Where is retry implemented?");
 
   assert.equal(decision.route, "engineering");
@@ -252,11 +226,7 @@ test("provides the previous route as context for follow-up questions", async () 
     }).systemOne,
   );
 
-  const decision = await router.classify(
-    "What happens on retry?",
-    "engineering",
-    "pi-chat",
-  );
+  const decision = await router.classify("What happens on retry?", "engineering", "pi-chat");
   assert.equal(decision.source, "jev");
   assert.deepEqual(state, {
     current_question: "What happens on retry?",
@@ -266,9 +236,6 @@ test("provides the previous route as context for follow-up questions", async () 
 });
 
 test("rejects an empty question", async () => {
-  const router = new JevQuestionRouter(
-    "test-key",
-    fakeClient("support").systemOne,
-  );
+  const router = new JevQuestionRouter("test-key", fakeClient("support").systemOne);
   await assert.rejects(() => router.classify("  "), /question is required/);
 });

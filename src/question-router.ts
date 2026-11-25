@@ -97,10 +97,7 @@ export class JevQuestionRouter {
 
     return {
       source: "jev",
-      route:
-        answer.choice === "clarify" || answer.confidence < 0.5
-          ? "clarify"
-          : answer.choice,
+      route: answer.choice === "clarify" || answer.confidence < 0.5 ? "clarify" : answer.choice,
       classification: answer.choice,
       confidence: answer.confidence,
       probabilities: answer.probabilities,

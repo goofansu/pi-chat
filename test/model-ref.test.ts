@@ -44,10 +44,7 @@ test("rejects a missing provider or model id", () => {
 
 test("resolves OpenRouter model ids that contain slashes", async () => {
   const parsed = parsePiChatModel("openrouter/openai/gpt-5.6-luna");
-  const { modelRuntime } = await createProjectProviderServices(
-    parsed.provider,
-    "project-secret",
-  );
+  const { modelRuntime } = await createProjectProviderServices(parsed.provider, "project-secret");
   const model = modelRuntime.getModel(parsed.provider, parsed.modelId);
   assert.ok(model);
   assert.equal(model.id, "openai/gpt-5.6-luna");

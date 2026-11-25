@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-
 import { sanitizedSlackText, threadHistoryLine } from "../src/slack-message.ts";
 
 test("removes Slack user mentions before model or routing state", () => {

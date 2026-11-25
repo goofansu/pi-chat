@@ -4,13 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-
 import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
-import {
-  createAgentSession,
-  SessionManager,
-} from "@earendil-works/pi-coding-agent";
-
+import { createAgentSession, SessionManager } from "@earendil-works/pi-coding-agent";
 import { webSearchPolicyExtension } from "../src/extensions/web-search-policy.ts";
 import { parsePiChatModel } from "../src/model-ref.ts";
 import { createProjectProviderServices } from "../src/provider-config.ts";
@@ -37,13 +32,8 @@ test("rejects a whitespace-only project provider API key", () => {
 });
 
 test("provider services keep filesystem and model-network isolation guards", async () => {
-  const source = await readFile(
-    new URL("../src/provider-config.ts", import.meta.url),
-    "utf8",
-  );
-  const runtimeOptions = source.match(
-    /ModelRuntime\.create\s*\(\s*\{([\s\S]*?)\}\s*\)/,
-  )?.[1];
+  const source = await readFile(new URL("../src/provider-config.ts", import.meta.url), "utf8");
+  const runtimeOptions = source.match(/ModelRuntime\.create\s*\(\s*\{([\s\S]*?)\}\s*\)/)?.[1];
 
   assert.match(
     source,
@@ -87,10 +77,7 @@ test("binds the project API key to the selected provider in memory", async () =>
   const authStatus = modelRuntime.getProviderAuthStatus("anthropic");
   assert.equal(authStatus.configured, true);
   assert.equal(authStatus.source, "runtime");
-  assert.equal(
-    (await modelRuntime.getAuth("anthropic"))?.auth.apiKey,
-    "project-secret",
-  );
+  assert.equal((await modelRuntime.getAuth("anthropic"))?.auth.apiKey, "project-secret");
   assert.ok(credentialStore instanceof InMemoryCredentialStore);
   assert.deepEqual(await credentialStore.list(), []);
   assert.deepEqual(modelRuntime.getRegisteredProviderIds(), []);
@@ -98,26 +85,15 @@ test("binds the project API key to the selected provider in memory", async () =>
 });
 
 test("does not bind the project key to another provider", async () => {
-  const { modelRuntime } = await createProjectProviderServices(
-    "anthropic",
-    "project-secret",
-  );
+  const { modelRuntime } = await createProjectProviderServices("anthropic", "project-secret");
 
-  assert.notEqual(
-    (await modelRuntime.getAuth("openai"))?.auth.apiKey,
-    "project-secret",
-  );
+  assert.notEqual((await modelRuntime.getAuth("openai"))?.auth.apiKey, "project-secret");
 });
 
 test("the application injects project provider services into Pi sessions", async () => {
-  const source = await readFile(
-    new URL("../src/index.ts", import.meta.url),
-    "utf8",
-  );
+  const source = await readFile(new URL("../src/index.ts", import.meta.url), "utf8");
   const sessionCallStarts = [...source.matchAll(/\bcreateAgentSession\s*\(/g)];
-  const sessionCalls = [
-    ...source.matchAll(/\bcreateAgentSession\s*\(\s*\{[\s\S]*?\n\s*\}\s*\)/g),
-  ];
+  const sessionCalls = [...source.matchAll(/\bcreateAgentSession\s*\(\s*\{[\s\S]*?\n\s*\}\s*\)/g)];
 
   assert.match(source, /createProjectProviderServices\(/);
   assert.match(source, /process\.env\.PI_CHAT_PROVIDER_API_KEY/);
@@ -144,34 +120,22 @@ test("the application injects project provider services into Pi sessions", async
 });
 
 test("the application prompt matches routing precedence and available tools", async () => {
-  const source = await readFile(
-    new URL("../src/index.ts", import.meta.url),
-    "utf8",
-  );
+  const source = await readFile(new URL("../src/index.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source, /claudeExtension|findClaudeBinary|"claude"/);
   assert.match(
     source,
     /mention of the configured project name selects engineering immediately, without calling Jev/,
   );
-  assert.match(
-    source,
-    /Otherwise, Jev selects engineering, support, or clarification/,
-  );
+  assert.match(source, /Otherwise, Jev selects engineering, support, or clarification/);
   assert.match(source, /Engineering: investigate the codebase directly/);
   assert.match(source, /Use ls .* find .* grep/);
   assert.match(source, /Use read to inspect/);
   assert.match(source, /Use web_search to discover/);
   assert.match(source, /Use web_fetch on a known allowed URL/);
-  assert.match(
-    source,
-    /paths that enter the state, exit it, and trigger the behaviour/,
-  );
+  assert.match(source, /paths that enter the state, exit it, and trigger the behaviour/);
   assert.match(source, /Base the answer on the project evidence you inspected/);
   assert.match(source, /Base the answer on returned sources/);
-  assert.match(
-    source,
-    /With no tools active, reply with exactly one concise question/,
-  );
+  assert.match(source, /With no tools active, reply with exactly one concise question/);
   assert.match(source, /Preserve uncertainty and behaviour-changing/);
   assert.match(source, /\*\*References\*\*/);
 });
@@ -181,8 +145,7 @@ test("loads Claude Code models without a project key or network discovery", asyn
   // Do not use the developer's real CLI or login during tests.
   process.env.PI_CLAUDE_CODE_COMMAND = join(tmpdir(), "pi-chat-no-such-claude");
   t.after(() => {
-    if (previousCommand === undefined)
-      delete process.env.PI_CLAUDE_CODE_COMMAND;
+    if (previousCommand === undefined) delete process.env.PI_CLAUDE_CODE_COMMAND;
     else process.env.PI_CLAUDE_CODE_COMMAND = previousCommand;
   });
   const fetch = t.mock.method(globalThis, "fetch", async () => {
@@ -191,33 +154,24 @@ test("loads Claude Code models without a project key or network discovery", asyn
 
   for (const apiKey of [undefined, "", " \t\n", "unused-project-key"]) {
     await t.test(`project key: ${JSON.stringify(apiKey)}`, async () => {
-      const { modelRuntime, credentialStore, resourceLoader } =
-        await createProjectProviderServices("claude-code", apiKey);
-      assert.deepEqual(modelRuntime.getRegisteredProviderIds(), [
+      const { modelRuntime, credentialStore, resourceLoader } = await createProjectProviderServices(
         "claude-code",
-      ]);
+        apiKey,
+      );
+      assert.deepEqual(modelRuntime.getRegisteredProviderIds(), ["claude-code"]);
       assert.ok(modelRuntime.getRegisteredNativeProvider("claude-code"));
       const model = modelRuntime.getModel("claude-code", "default");
       assert.ok(model);
       assert.equal(model.provider, "claude-code");
       assert.equal(model.api, "claude-code-stream-json");
       assert.ok(modelRuntime.getModel("claude-code", "claude-sonnet-5"));
-      assert.equal(
-        modelRuntime.getModel("claude-code", "not-a-model"),
-        undefined,
-      );
+      assert.equal(modelRuntime.getModel("claude-code", "not-a-model"), undefined);
       assert.ok(modelRuntime.getProvider("anthropic"));
       assert.deepEqual(resourceLoader.getExtensions().errors, []);
       assert.equal(resourceLoader.getExtensions().extensions.length, 1);
       assert.deepEqual(await credentialStore.list(), []);
-      assert.equal(
-        (await modelRuntime.getAuth("claude-code"))?.source,
-        "Claude Code CLI",
-      );
-      assert.notEqual(
-        modelRuntime.getProviderAuthStatus("claude-code").source,
-        "runtime",
-      );
+      assert.equal((await modelRuntime.getAuth("claude-code"))?.source, "Claude Code CLI");
+      assert.notEqual(modelRuntime.getProviderAuthStatus("claude-code").source, "runtime");
     });
   }
   assert.equal(fetch.mock.callCount(), 0);
@@ -227,34 +181,22 @@ test("Claude Code sessions retain Pi's route-specific tool sets", async (t) => {
   const previousCommand = process.env.PI_CLAUDE_CODE_COMMAND;
   process.env.PI_CLAUDE_CODE_COMMAND = join(tmpdir(), "pi-chat-no-such-claude");
   t.after(() => {
-    if (previousCommand === undefined)
-      delete process.env.PI_CLAUDE_CODE_COMMAND;
+    if (previousCommand === undefined) delete process.env.PI_CLAUDE_CODE_COMMAND;
     else process.env.PI_CLAUDE_CODE_COMMAND = previousCommand;
   });
   const parsed = parsePiChatModel("claude-code/default:high");
-  const services = await createProjectProviderServices(
-    parsed.provider,
-    undefined,
-    {
-      cwd: process.cwd(),
-      resourceLoaderOptions: {
-        additionalExtensionPaths: [
-          fileURLToPath(
-            import.meta.resolve("@goofansu/pi-web/extensions/web-search.ts"),
-          ),
-          fileURLToPath(
-            import.meta.resolve("@goofansu/pi-web/extensions/web-fetch.ts"),
-          ),
-        ],
-        extensionFactories: [webSearchPolicyExtension(["docs.example.com"])],
-      },
+  const services = await createProjectProviderServices(parsed.provider, undefined, {
+    cwd: process.cwd(),
+    resourceLoaderOptions: {
+      additionalExtensionPaths: [
+        fileURLToPath(import.meta.resolve("@goofansu/pi-web/extensions/web-search.ts")),
+        fileURLToPath(import.meta.resolve("@goofansu/pi-web/extensions/web-fetch.ts")),
+      ],
+      extensionFactories: [webSearchPolicyExtension(["docs.example.com"])],
     },
-  );
+  });
   const model = services.modelRuntime.getModel(parsed.provider, parsed.modelId);
-  assert.ok(
-    model,
-    "provider models must be registered before session creation",
-  );
+  assert.ok(model, "provider models must be registered before session creation");
   const engineeringTools = ["read", "grep", "find", "ls"];
   const supportTools = ["web_search", "web_fetch"];
   const { session } = await createAgentSession({
@@ -291,16 +233,16 @@ test("does not discover user or project configuration", async (t) => {
     await writeFile(join(configDir, "auth.json"), "not valid JSON");
     await writeFile(join(configDir, "models.json"), "not valid JSON");
     await writeFile(join(configDir, "settings.json"), "not valid JSON");
-    await writeFile(
-      join(configDir, "extensions", "bad.ts"),
-      'throw new Error("must not load");',
-    );
+    await writeFile(join(configDir, "extensions", "bad.ts"), 'throw new Error("must not load");');
   }
-  const { resourceLoader, settingsManager, modelRuntime } =
-    await createProjectProviderServices("anthropic", "project-secret", {
+  const { resourceLoader, settingsManager, modelRuntime } = await createProjectProviderServices(
+    "anthropic",
+    "project-secret",
+    {
       cwd,
       agentDir,
-    });
+    },
+  );
   assert.deepEqual(resourceLoader.getExtensions().extensions, []);
   assert.deepEqual(resourceLoader.getAgentsFiles().agentsFiles, []);
   assert.deepEqual(settingsManager.drainErrors(), []);

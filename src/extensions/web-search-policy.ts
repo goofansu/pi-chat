@@ -8,9 +8,7 @@ function normalizeDomain(value: string): string {
 
   let url: URL;
   try {
-    url = new URL(
-      candidate.includes("://") ? candidate : `https://${candidate}`,
-    );
+    url = new URL(candidate.includes("://") ? candidate : `https://${candidate}`);
   } catch (error) {
     throw new Error(`Invalid web search domain: ${JSON.stringify(candidate)}`, {
       cause: error,
@@ -18,18 +16,9 @@ function normalizeDomain(value: string): string {
   }
 
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error(
-      `Web search domain must use HTTP or HTTPS: ${JSON.stringify(candidate)}`,
-    );
+    throw new Error(`Web search domain must use HTTP or HTTPS: ${JSON.stringify(candidate)}`);
   }
-  if (
-    url.username ||
-    url.password ||
-    url.port ||
-    url.pathname !== "/" ||
-    url.search ||
-    url.hash
-  ) {
+  if (url.username || url.password || url.port || url.pathname !== "/" || url.search || url.hash) {
     throw new Error(
       `Web search domain must be a hostname without credentials, port, path, query, or fragment: ${JSON.stringify(candidate)}`,
     );
@@ -46,24 +35,17 @@ export function parseWebSearchDomains(value: string | undefined): string[] {
 
   const domains = [...new Set(value.split(",").map(normalizeDomain))];
   if (domains.length > MAX_DOMAINS) {
-    throw new Error(
-      `PI_CHAT_WEB_SEARCH_DOMAINS accepts at most ${MAX_DOMAINS} domains`,
-    );
+    throw new Error(`PI_CHAT_WEB_SEARCH_DOMAINS accepts at most ${MAX_DOMAINS} domains`);
   }
   return domains;
 }
 
 /** Build a Brave inline Goggle that discards everything except the configured sites. */
 export function domainAllowlistGoggle(domains: readonly string[]): string {
-  return ["$discard", ...domains.map((domain) => `$boost,site=${domain}`)].join(
-    "%0A",
-  );
+  return ["$discard", ...domains.map((domain) => `$boost,site=${domain}`)].join("%0A");
 }
 
-function sourceIsAllowed(
-  value: unknown,
-  domains: ReadonlySet<string>,
-): boolean {
+function sourceIsAllowed(value: unknown, domains: ReadonlySet<string>): boolean {
   if (typeof value !== "string") return false;
   try {
     return domains.has(new URL(value).hostname.toLowerCase());
@@ -73,11 +55,8 @@ function sourceIsAllowed(
 }
 
 /** Enforce the server-owned allowlist regardless of arguments chosen by the model. */
-export function webSearchPolicyExtension(
-  domains: readonly string[],
-): (pi: ExtensionAPI) => void {
-  const goggles =
-    domains.length > 0 ? domainAllowlistGoggle(domains) : undefined;
+export function webSearchPolicyExtension(domains: readonly string[]): (pi: ExtensionAPI) => void {
+  const goggles = domains.length > 0 ? domainAllowlistGoggle(domains) : undefined;
   const allowedDomains = new Set(domains);
 
   return (pi) => {
@@ -94,8 +73,7 @@ export function webSearchPolicyExtension(
       if (!sourceIsAllowed(event.input.url, allowedDomains)) {
         return {
           block: true,
-          reason:
-            "web_fetch URL is outside PI_CHAT_WEB_SEARCH_DOMAINS and cannot be fetched",
+          reason: "web_fetch URL is outside PI_CHAT_WEB_SEARCH_DOMAINS and cannot be fetched",
         };
       }
 
@@ -131,9 +109,7 @@ export function webSearchPolicyExtension(
       }
 
       if (event.toolName !== "web_search") return;
-      const details = event.details as
-        | { sources?: Array<{ url?: unknown }> }
-        | undefined;
+      const details = event.details as { sources?: Array<{ url?: unknown }> } | undefined;
       if (!Array.isArray(details?.sources)) {
         return {
           content: [

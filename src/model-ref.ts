@@ -1,10 +1,4 @@
-export type ThinkingLevel =
-  | "off"
-  | "minimal"
-  | "low"
-  | "medium"
-  | "high"
-  | "xhigh";
+export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
 const THINKING_LEVELS = new Set<ThinkingLevel>([
   "off",
@@ -35,9 +29,7 @@ export function parsePiChatModel(value: string): {
   const provider = slash === -1 ? "" : modelRef.slice(0, slash);
   const modelId = slash === -1 ? "" : modelRef.slice(slash + 1);
   if (!provider || !modelId) {
-    throw new Error(
-      `PI_CHAT_MODEL must be in the form provider/model[:thinking], got: ${value}`,
-    );
+    throw new Error(`PI_CHAT_MODEL must be in the form provider/model[:thinking], got: ${value}`);
   }
 
   return { provider, modelId, thinkingLevel };

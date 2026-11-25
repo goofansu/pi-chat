@@ -32,9 +32,7 @@ export async function recoverSessionError(
   await actions.postReply(sessionErrorReply(error));
 }
 
-export async function handleSessionPrompt(
-  actions: SessionPromptActions,
-): Promise<void> {
+export async function handleSessionPrompt(actions: SessionPromptActions): Promise<void> {
   try {
     await actions.prompt();
   } catch (err) {

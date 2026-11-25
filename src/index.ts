@@ -1,20 +1,12 @@
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
-
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createPostgresState } from "@chat-adapter/state-pg";
-import {
-  createAgentSession,
-  getAgentDir,
-  SessionManager,
-} from "@earendil-works/pi-coding-agent";
+import { createAgentSession, getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 import { WebClient } from "@slack/web-api";
 import { connectDatabase } from "./database-startup.ts";
 import { projectCwd } from "./extensions/utils.ts";
-import {
-  parseWebSearchDomains,
-  webSearchPolicyExtension,
-} from "./extensions/web-search-policy.ts";
+import { parseWebSearchDomains, webSearchPolicyExtension } from "./extensions/web-search-policy.ts";
 import { parsePiChatModel } from "./model-ref.ts";
 import { createProjectProviderServices } from "./provider-config.ts";
 import { JevQuestionRouter, type QuestionRoute } from "./question-router.ts";
@@ -33,14 +25,7 @@ interface ImageContent {
   mimeType: string;
 }
 
-import {
-  type Attachment,
-  Chat,
-  type EmojiValue,
-  emoji,
-  type Message,
-  type Thread,
-} from "chat";
+import { type Attachment, Chat, type EmojiValue, emoji, type Message, type Thread } from "chat";
 
 // ---------------------------------------------------------------------------
 // 1. Config
@@ -54,20 +39,13 @@ console.log("[pi] Agent dir:", agentDir);
 
 const PI_CHAT_MODEL = process.env.PI_CHAT_MODEL;
 if (!PI_CHAT_MODEL) throw new Error("PI_CHAT_MODEL env variable is required");
-const {
-  provider: modelProvider,
-  modelId,
-  thinkingLevel,
-} = parsePiChatModel(PI_CHAT_MODEL);
+const { provider: modelProvider, modelId, thinkingLevel } = parsePiChatModel(PI_CHAT_MODEL);
 
 const PI_CHAT_JEV_API_KEY = process.env.PI_CHAT_JEV_API_KEY;
-if (!PI_CHAT_JEV_API_KEY)
-  throw new Error("PI_CHAT_JEV_API_KEY env variable is required");
+if (!PI_CHAT_JEV_API_KEY) throw new Error("PI_CHAT_JEV_API_KEY env variable is required");
 const questionRouter = new JevQuestionRouter(PI_CHAT_JEV_API_KEY);
 
-const webSearchDomains = parseWebSearchDomains(
-  process.env.PI_CHAT_WEB_SEARCH_DOMAINS,
-);
+const webSearchDomains = parseWebSearchDomains(process.env.PI_CHAT_WEB_SEARCH_DOMAINS);
 console.log("[pi] Web search domains:", webSearchDomains.join(", "));
 
 // @goofansu/pi-web expects conventional variables. Derive them from this
@@ -101,17 +79,14 @@ const {
   modelRuntime,
   resourceLoader: loader,
   settingsManager,
-} = await createProjectProviderServices(
-  modelProvider,
-  process.env.PI_CHAT_PROVIDER_API_KEY,
-  {
-    cwd: projectDir,
-    agentDir,
-    resourceLoaderOptions: {
-      additionalExtensionPaths: [webSearchExtensionPath, webFetchExtensionPath],
-      extensionFactories: [webSearchPolicyExtension(webSearchDomains)],
-      systemPromptOverride: () =>
-        `You help support agents answer customer questions using the ${JSON.stringify(projectName)} codebase and the configured support websites. Write in the user's language.
+} = await createProjectProviderServices(modelProvider, process.env.PI_CHAT_PROVIDER_API_KEY, {
+  cwd: projectDir,
+  agentDir,
+  resourceLoaderOptions: {
+    additionalExtensionPaths: [webSearchExtensionPath, webFetchExtensionPath],
+    extensionFactories: [webSearchPolicyExtension(webSearchDomains)],
+    systemPromptOverride: () =>
+      `You help support agents answer customer questions using the ${JSON.stringify(projectName)} codebase and the configured support websites. Write in the user's language.
 
 Routing
 The server selects an evidence source for the latest user question before you respond:
@@ -140,9 +115,8 @@ Question: Restate the user's question briefly.
 Answer: Give a direct, customer-facing answer in 2–4 sentences, using bullets for lists. Keep the entire reply under 300 words, including references.
 
 Write only user-visible behaviour, settings, and business rules, including when the user requests implementation details. Keep internal file paths, class/method names, and code blocks out of replies; reserve inline code for UI field names. Preserve uncertainty and behaviour-changing limits, expirations, and exclusions. Trim background before those caveats. Apply this format to follow-ups too.`,
-    },
   },
-);
+});
 const model = modelRuntime.getModel(modelProvider, modelId);
 if (!model) throw new Error(`Model ${PI_CHAT_MODEL} not found`);
 console.log("[pi] Model:", `${model.provider}/${model.id}`);
@@ -155,8 +129,7 @@ console.log("[pi] Thinking level:", thinkingLevel);
 // Pass the project's prefixed variables explicitly instead of using the
 // adapter's ambient SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET variables.
 const PI_CHAT_SLACK_BOT_TOKEN = process.env.PI_CHAT_SLACK_BOT_TOKEN;
-if (!PI_CHAT_SLACK_BOT_TOKEN)
-  throw new Error("PI_CHAT_SLACK_BOT_TOKEN env variable is required");
+if (!PI_CHAT_SLACK_BOT_TOKEN) throw new Error("PI_CHAT_SLACK_BOT_TOKEN env variable is required");
 
 const PI_CHAT_SLACK_SIGNING_SECRET = process.env.PI_CHAT_SLACK_SIGNING_SECRET;
 if (!PI_CHAT_SLACK_SIGNING_SECRET)
@@ -164,8 +137,7 @@ if (!PI_CHAT_SLACK_SIGNING_SECRET)
 
 // PostgreSQL state — shared between Chat SDK and pi session persistence
 const PI_CHAT_POSTGRES_URL = process.env.PI_CHAT_POSTGRES_URL;
-if (!PI_CHAT_POSTGRES_URL)
-  throw new Error("PI_CHAT_POSTGRES_URL env variable is required");
+if (!PI_CHAT_POSTGRES_URL) throw new Error("PI_CHAT_POSTGRES_URL env variable is required");
 
 const state = createPostgresState({
   url: PI_CHAT_POSTGRES_URL,
@@ -177,17 +149,12 @@ function questionRouteKey(threadId: string): string {
   return `question-route:${threadId}`;
 }
 
-async function getQuestionRoute(
-  threadId: string,
-): Promise<QuestionRoute | undefined> {
+async function getQuestionRoute(threadId: string): Promise<QuestionRoute | undefined> {
   const value = await state.get(questionRouteKey(threadId));
   return value === "engineering" || value === "support" ? value : undefined;
 }
 
-async function setQuestionRoute(
-  threadId: string,
-  route: QuestionRoute,
-): Promise<void> {
+async function setQuestionRoute(threadId: string, route: QuestionRoute): Promise<void> {
   await state.set(questionRouteKey(threadId), route);
 }
 
@@ -201,8 +168,7 @@ async function safeRemoveReaction(
   } catch (err: unknown) {
     const isNotFound =
       err instanceof Error &&
-      (err.message.includes("message_not_found") ||
-        err.message.includes("thread_not_found"));
+      (err.message.includes("message_not_found") || err.message.includes("thread_not_found"));
     if (isNotFound) {
       console.warn(
         `[${thread.adapter.name}] message already deleted, skipping removeReaction (thread=${thread.id}, message=${messageId})`,
@@ -217,10 +183,7 @@ async function getSessionPath(threadId: string): Promise<string | null> {
   return state.get(sessionPathKey(threadId));
 }
 
-async function setSessionPath(
-  threadId: string,
-  sessionFile: string,
-): Promise<void> {
+async function setSessionPath(threadId: string, sessionFile: string): Promise<void> {
   await state.set(sessionPathKey(threadId), sessionFile);
 }
 
@@ -256,8 +219,7 @@ async function fetchImages(attachments: Attachment[]): Promise<ImageContent[]> {
         const response = await fetch(attachment.url, {
           headers: { Authorization: `Bearer ${PI_CHAT_SLACK_BOT_TOKEN}` },
         });
-        if (!response.ok)
-          throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
         data = Buffer.from(await response.arrayBuffer());
       } else {
         continue;
@@ -286,8 +248,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
 
   // Fetch image attachments
   const images = await fetchImages(message.attachments);
-  if (images.length > 0)
-    console.log(`[pi] attachments: ${images.length} image(s)`);
+  if (images.length > 0) console.log(`[pi] attachments: ${images.length} image(s)`);
 
   let prompt: string;
   if (existingSessionPath) {
@@ -298,11 +259,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     try {
       await thread.refresh();
     } catch (err) {
-      if (
-        (err as { data?: { error?: string } })?.data?.error !==
-        "thread_not_found"
-      )
-        throw err;
+      if ((err as { data?: { error?: string } })?.data?.error !== "thread_not_found") throw err;
       console.log("[slack] no existing thread — skipping history fetch");
     }
     const history = thread.recentMessages
@@ -310,9 +267,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
       .map(threadHistoryLine)
       .filter((line) => !line.endsWith(": "))
       .join("\n");
-    prompt = history
-      ? `Thread context:\n${history}\n\nQuestion: ${userText}`
-      : userText;
+    prompt = history ? `Thread context:\n${history}\n\nQuestion: ${userText}` : userText;
   }
 
   if (!prompt.trim() && images.length === 0) {
@@ -320,9 +275,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     return;
   }
 
-  console.log(
-    `[pi] prompt prepared (thread=${thread.id}, chars=${prompt.length})`,
-  );
+  console.log(`[pi] prompt prepared (thread=${thread.id}, chars=${prompt.length})`);
 
   await thread.adapter.addReaction(thread.id, message.id, emoji.eyes);
 
@@ -332,11 +285,7 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     const previousRoute = await getQuestionRoute(thread.id);
     const routingQuestion =
       userText || "The user sent image attachments without accompanying text.";
-    const decision = await questionRouter.classify(
-      routingQuestion,
-      previousRoute,
-      projectName,
-    );
+    const decision = await questionRouter.classify(routingQuestion, previousRoute, projectName);
     route = decision.route;
     // A clarification is not an evidence-source decision. Keep the prior route
     // so the user's answer can still be interpreted as a follow-up to it.
@@ -376,19 +325,13 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
     resourceLoader: loader,
   });
   session.setActiveToolsByName(
-    route === "engineering"
-      ? engineeringTools
-      : route === "support"
-        ? supportTools
-        : [],
+    route === "engineering" ? engineeringTools : route === "support" ? supportTools : [],
   );
 
   // Store session file path on first message in a thread
   if (!existingSessionPath && session.sessionFile) {
     await setSessionPath(thread.id, session.sessionFile);
-    console.log(
-      `[pi] new session for thread=${thread.id}: ${session.sessionFile}`,
-    );
+    console.log(`[pi] new session for thread=${thread.id}: ${session.sessionFile}`);
   }
 
   let response = "";
@@ -428,16 +371,13 @@ async function askPi(thread: Thread, message: Message): Promise<void> {
       : prompt;
 
   await handleSessionPrompt({
-    prompt: () =>
-      session.prompt(routedPrompt, images.length > 0 ? { images } : undefined),
+    prompt: () => session.prompt(routedPrompt, images.length > 0 ? { images } : undefined),
     recoverPromptError: async (err) => {
       console.error("[pi] session error:", err);
       await recoverSessionError(err, {
         invalidateSession: () => state.delete(sessionPathKey(thread.id)),
-        removeProgressReaction: () =>
-          safeRemoveReaction(thread, message.id, emoji.eyes),
-        addFailureReaction: () =>
-          thread.adapter.addReaction(thread.id, message.id, emoji.x),
+        removeProgressReaction: () => safeRemoveReaction(thread, message.id, emoji.eyes),
+        addFailureReaction: () => thread.adapter.addReaction(thread.id, message.id, emoji.x),
         postReply: (reply) => thread.post(reply).then(() => undefined),
       });
     },
@@ -485,9 +425,7 @@ bot.onSubscribedMessage(async (thread, message) => {
   const rawText = (message.raw as { text?: string }).text ?? "";
   const hasMentions = /<@[A-Z0-9]+>/.test(rawText);
   if (hasMentions && !message.isMention) {
-    console.log(
-      `[pi] skipping message with user mentions (no bot mention) in thread=${thread.id}`,
-    );
+    console.log(`[pi] skipping message with user mentions (no bot mention) in thread=${thread.id}`);
     return;
   }
   await askPi(thread, message);
@@ -509,19 +447,13 @@ const server = createServer(async (req, res) => {
       for await (const chunk of req) chunks.push(chunk);
 
       // Convert to a Web-standard Request
-      const webReq = new Request(
-        `http://${req.headers.host ?? `localhost:${PORT}`}${req.url}`,
-        {
-          method: req.method,
-          headers: Object.fromEntries(
-            Object.entries(req.headers).filter(([, v]) => v !== undefined) as [
-              string,
-              string,
-            ][],
-          ),
-          body: chunks.length ? Buffer.concat(chunks) : undefined,
-        },
-      );
+      const webReq = new Request(`http://${req.headers.host ?? `localhost:${PORT}`}${req.url}`, {
+        method: req.method,
+        headers: Object.fromEntries(
+          Object.entries(req.headers).filter(([, v]) => v !== undefined) as [string, string][],
+        ),
+        body: chunks.length ? Buffer.concat(chunks) : undefined,
+      });
 
       // Let the adapter handle it
       const webRes = await bot.webhooks.slack(webReq);
@@ -543,6 +475,4 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT);
-server.on("error", (err) =>
-  console.error("[server] Failed to listen:", err.message),
-);
+server.on("error", (err) => console.error("[server] Failed to listen:", err.message));
